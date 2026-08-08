@@ -82,7 +82,7 @@ def build_review_embed(
     embed.set_thumbnail(url=user.display_avatar.url)
     embed.add_field(
         name=start.review.user_label,
-        value=f"{user.display_name} ({user.id})",
+        value=f"{user.display_name} {user.mention}",
         inline=False,
     )
     embed.add_field(
