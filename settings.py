@@ -28,12 +28,27 @@ class EmbedSettings(BaseModel):
         return value
 
 
+class ReviewEmbedSettings(BaseModel):
+    title: str
+    color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
+
+
+class ButtonsSettings(BaseModel):
+    accept: str
+    deny: str
+    open_ticket: str
+    accept_reply: str
+    deny_reply: str
+
+
 class StartScreenSettings(BaseModel):
     modal_title: str
     button_label: str
     ack_message: str
     confirmation_message: str
     embed: EmbedSettings
+    review: ReviewEmbedSettings
+    buttons: ButtonsSettings
 
 
 class QuestionSettings(BaseModel):
@@ -78,9 +93,31 @@ class QuestionsFile(BaseModel):
         return self
 
 
+class TicketSettings(BaseModel):
+    category: int = Field(gt=0)
+    name_prefix: str = Field(min_length=1)
+
+
+class StartScreenConfig(BaseModel):
+    mode: Literal["review", "direct"] = "review"
+    review_channel: int | None = Field(None, gt=0)
+    ticket: TicketSettings
+
+    @model_validator(mode="after")
+    def _check_review_channel(self) -> StartScreenConfig:
+        if self.mode == "review" and self.review_channel is None:
+            raise ValueError("'review_channel' is required when mode is 'review'")
+        return self
+
+
+class BotConfig(BaseModel):
+    start_screen: StartScreenConfig
+
+
 class Settings(BaseModel):
     start_screen: StartScreenSettings
     questions: list[QuestionSettings]
+    config: BotConfig
 
     @model_validator(mode="after")
     def _check_confirmation_placeholders(self) -> Settings:
@@ -109,7 +146,9 @@ def _read_toml(filename: str) -> dict:
 def load_settings() -> Settings:
     content = ContentFile.model_validate(_read_toml("content.toml"))
     questions_file = QuestionsFile.model_validate(_read_toml("questions.toml"))
+    bot_config = BotConfig.model_validate(_read_toml("config.toml"))
     return Settings(
         start_screen=content.start_screen,
         questions=questions_file.question,
+        config=bot_config,
     )

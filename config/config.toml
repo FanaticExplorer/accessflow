@@ -1,0 +1,7 @@
+[start_screen]
+mode = "direct"
+review_channel = 1535615216769962074
+
+[start_screen.ticket]
+category = 1535615119822692412
+name_prefix = "ticket-"
