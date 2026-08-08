@@ -1,6 +1,7 @@
 [start_screen]
 mode = "review"
 review_channel = 1535615216769962074
+timezone = "UTC"
 
 [start_screen.ticket]
 category = 1535615119822692412

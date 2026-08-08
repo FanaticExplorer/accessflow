@@ -5,7 +5,7 @@ from discord.abc import Messageable
 from loguru import logger
 
 import db
-from embeds import build_review_embed, sanitize_channel_name
+from embeds import build_decision_footer, build_review_embed, sanitize_channel_name
 from settings import QuestionSettings, Settings, load_settings
 
 settings: Settings = load_settings()
@@ -56,6 +56,29 @@ async def _record_decision(
         application = await db.get_by_ticket_channel(interaction.channel_id)
     if application is not None:
         await db.update_status(application.message_id, status)
+
+
+async def _decide(
+    interaction: discord.Interaction,
+    status: Literal["accepted", "denied"],
+    view: discord.ui.View,
+) -> None:
+    await _record_decision(interaction, status)
+    reply = (
+        settings.start_screen.buttons.accept_reply
+        if status == "accepted"
+        else settings.start_screen.buttons.deny_reply
+    )
+    message = interaction.message
+    if message is not None:
+        view.disable_all_items()
+        if message.embeds:
+            admin = interaction.user.display_name if interaction.user else "unknown"
+            message.embeds[0].set_footer(text=build_decision_footer(status, admin))
+            await message.edit(embed=message.embeds[0], view=view)
+        else:
+            await message.edit(view=view)
+    await interaction.response.send_message(reply, ephemeral=True)
 
 
 class StartFlowModal(discord.ui.Modal):
@@ -146,10 +169,7 @@ class ReviewView(discord.ui.View):
         style=discord.ButtonStyle.success,
     )
     async def accept(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await _record_decision(interaction, "accepted")
-        await interaction.response.send_message(
-            settings.start_screen.buttons.accept_reply, ephemeral=True
-        )
+        await _decide(interaction, "accepted", ReviewView())
 
     @discord.ui.button(
         label=settings.start_screen.buttons.deny,
@@ -157,10 +177,7 @@ class ReviewView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await _record_decision(interaction, "denied")
-        await interaction.response.send_message(
-            settings.start_screen.buttons.deny_reply, ephemeral=True
-        )
+        await _decide(interaction, "denied", ReviewView())
 
     @discord.ui.button(
         label=settings.start_screen.buttons.open_ticket,
@@ -197,10 +214,7 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.success,
     )
     async def accept(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await _record_decision(interaction, "accepted")
-        await interaction.response.send_message(
-            settings.start_screen.buttons.accept_reply, ephemeral=True
-        )
+        await _decide(interaction, "accepted", TicketView())
 
     @discord.ui.button(
         label=settings.start_screen.buttons.deny,
@@ -208,7 +222,4 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await _record_decision(interaction, "denied")
-        await interaction.response.send_message(
-            settings.start_screen.buttons.deny_reply, ephemeral=True
-        )
+        await _decide(interaction, "denied", TicketView())

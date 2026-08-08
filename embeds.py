@@ -1,4 +1,6 @@
 import re
+from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 import discord
 
@@ -28,12 +30,60 @@ def build_start_embed() -> discord.Embed:
     return embed
 
 
+def _timestamps(dt: datetime | None) -> str:
+    if dt is None:
+        return "—"
+    ts = int(dt.timestamp())
+    return f"<t:{ts}:f>\n<t:{ts}:R>"
+
+
+def parse_timezone(value: str) -> timezone:
+    if value == "UTC":
+        return timezone.utc
+    match = re.fullmatch(r"([+-])(\d{2}):(\d{2})", value)
+    if match is None:
+        raise ValueError(f"invalid timezone {value!r}")
+    sign = 1 if match.group(1) == "+" else -1
+    offset = timedelta(hours=int(match.group(2)), minutes=int(match.group(3)))
+    return timezone(sign * offset)
+
+
+def build_decision_footer(status: Literal["accepted", "denied"], admin: str) -> str:
+    start = settings.start_screen
+    template = (
+        start.review.accepted_footer
+        if status == "accepted"
+        else start.review.denied_footer
+    )
+    text = template.replace("{user}", admin)
+    now = datetime.now(parse_timezone(settings.config.start_screen.timezone))
+    label = settings.config.start_screen.timezone
+    return f"{text}\n{now.strftime('%Y-%m-%d %H:%M')} {label}"
+
+
 def build_review_embed(
     user: discord.User | discord.Member, answers: dict[str, str]
 ) -> discord.Embed:
     start = settings.start_screen
     embed = discord.Embed(title=start.review.title, color=parse_color(start.review.color))
-    embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+    embed.set_author(name=f"{user.display_name} ({user.id})")
+    embed.set_thumbnail(url=user.display_avatar.url)
+    embed.add_field(
+        name=start.review.user_label,
+        value=f"{user.display_name} ({user.id})",
+        inline=False,
+    )
+    embed.add_field(
+        name=start.review.created_label,
+        value=_timestamps(user.created_at),
+        inline=False,
+    )
+    joined = user.joined_at if isinstance(user, discord.Member) else None
+    embed.add_field(
+        name=start.review.joined_label,
+        value=_timestamps(joined),
+        inline=False,
+    )
     for question in settings.questions:
         embed.add_field(
             name=question.label, value=answers.get(question.key, "") or "—", inline=False

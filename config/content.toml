@@ -13,6 +13,11 @@ image = ""
 [start_screen.review]
 title = "New application"
 color = "#5865F2"
+user_label = "User"
+created_label = "Account created"
+joined_label = "Member joined"
+accepted_footer = "Application accepted by {user}"
+denied_footer = "Application denied by {user}"
 
 [start_screen.buttons]
 accept = "Accept"

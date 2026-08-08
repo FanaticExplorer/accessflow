@@ -31,6 +31,11 @@ class EmbedSettings(BaseModel):
 class ReviewEmbedSettings(BaseModel):
     title: str
     color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
+    user_label: str = "User"
+    created_label: str = "Account created"
+    joined_label: str = "Member joined"
+    accepted_footer: str = "Application accepted by {user}"
+    denied_footer: str = "Application denied by {user}"
 
 
 class ButtonsSettings(BaseModel):
@@ -108,7 +113,18 @@ class TicketSettings(BaseModel):
 class StartScreenConfig(BaseModel):
     mode: Literal["review", "direct"] = "review"
     review_channel: int | None = Field(None, gt=0)
+    timezone: str = "UTC"
     ticket: TicketSettings
+
+    @field_validator("timezone")
+    @classmethod
+    def _normalize_timezone(cls, value: str) -> str:
+        normalized = value.upper()
+        if not re.fullmatch(r"(?:UTC|Z|[+-]\d{2}:\d{2})", normalized):
+            raise ValueError(
+                "'timezone' must be 'UTC', 'Z', or a UTC offset like '+03:00'"
+            )
+        return "UTC" if normalized == "Z" else normalized
 
     @model_validator(mode="after")
     def _check_review_channel(self) -> StartScreenConfig:
