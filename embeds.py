@@ -90,11 +90,11 @@ def build_review_embed(
 ) -> discord.Embed:
     start = settings.start_screen
     embed = discord.Embed(title=start.review.title, color=parse_color(start.review.color))
-    embed.set_author(name=f"{user.display_name} ({user.id})")
+    embed.set_author(name=f"{user.name} ({user.id})")
     embed.set_thumbnail(url=user.display_avatar.url)
     embed.add_field(
         name=start.review.user_label,
-        value=f"{user.display_name} {user.mention}",
+        value=f"{user.name} {user.mention}",
         inline=False,
     )
     embed.add_field(

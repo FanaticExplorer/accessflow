@@ -22,6 +22,16 @@ deleted_footer = "Application deleted by {user}"
 send_copy = true
 allow_delete = true
 
+[start_screen.review.dm]
+accepted = "Congratulations, {user}! Your application was accepted."
+denied = "Your application was declined."
+denied_with_reason = "Your application was declined. Reason: {reason}"
+
+[start_screen.review.deny_modal]
+title = "Deny application"
+label = "Reason for denial"
+placeholder = "Tell the applicant why their application was declined."
+
 [start_screen.review.copy_embed]
 title = "Your application"
 color = "#5865F2"

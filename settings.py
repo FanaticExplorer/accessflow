@@ -47,6 +47,30 @@ class CopyEmbedSettings(BaseModel):
     color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
 
 
+class DecisionDmSettings(BaseModel):
+    accepted: str = "Congratulations, {user}! Your application was accepted."
+    denied: str = "Your application was declined."
+    denied_with_reason: str = "Your application was declined. Reason: {reason}"
+
+    @model_validator(mode="after")
+    def _check_placeholders(self) -> DecisionDmSettings:
+        for field_name in ("accepted", "denied", "denied_with_reason"):
+            text = getattr(self, field_name)
+            unknown = set(_PLACEHOLDER_RE.findall(text)) - {"user", "reason"}
+            if unknown:
+                raise ValueError(
+                    f"'review.dm.{field_name}' may only use the '{{user}}' and "
+                    f"'{{reason}}' placeholders, got: {', '.join(sorted(unknown))}"
+                )
+        return self
+
+
+class DenyModalSettings(BaseModel):
+    title: str
+    label: str
+    placeholder: str = ""
+
+
 class ReviewEmbedSettings(BaseModel):
     title: str
     color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
@@ -58,6 +82,8 @@ class ReviewEmbedSettings(BaseModel):
     deleted_footer: str = "Application deleted by {user}"
     send_copy: bool = True
     allow_delete: bool = True
+    dm: DecisionDmSettings
+    deny_modal: DenyModalSettings
     copy_embed: CopyEmbedSettings
     ticket: TicketMessageSettings
 
@@ -140,7 +166,16 @@ class StartScreenConfig(BaseModel):
     mode: Literal["review", "direct"] = "review"
     review_channel: int | None = Field(None, gt=0)
     timezone: str = "UTC"
+    role_id: int | None = Field(None, gt=0)
+    deny_reason: bool = False
     ticket: TicketSettings
+
+    @field_validator("role_id", mode="before")
+    @classmethod
+    def _empty_role_to_none(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
 
     @field_validator("timezone")
     @classmethod

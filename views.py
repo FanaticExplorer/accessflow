@@ -52,8 +52,8 @@ async def create_ticket_channel(
     return await channel.send(embed=embed, view=TicketView())
 
 
-async def _record_decision(
-    interaction: discord.Interaction, status: Literal["accepted", "denied", "deleted"]
+async def _find_application(
+    interaction: discord.Interaction,
 ) -> db.Application | None:
     application = None
     if interaction.message is not None:
@@ -62,8 +62,6 @@ async def _record_decision(
         application = await db.get_by_user_copy_message(interaction.message.id)
     if application is None and interaction.channel_id is not None:
         application = await db.get_by_ticket_channel(interaction.channel_id)
-    if application is not None:
-        await db.update_status(application.message_id, status)
     return application
 
 
@@ -73,7 +71,9 @@ async def _sync_review_message(
     message: discord.Message | None,
     footer: str,
 ) -> None:
-    if application is None or message is None or application.message_id == message.id:
+    if application is None:
+        return
+    if message is not None and application.message_id == message.id:
         return
     review_channel_id = settings.config.start_screen.review_channel
     if review_channel_id is None:
@@ -94,6 +94,13 @@ async def _sync_review_message(
         review_message = await channel.fetch_message(application.message_id)
     except (discord.NotFound, discord.Forbidden):
         return
+    sync_view = ReviewView()
+    sync_view.disable_all_items()
+    if review_message.embeds:
+        review_message.embeds[0].set_footer(text=footer)
+        await review_message.edit(embed=review_message.embeds[0], view=sync_view)
+    else:
+        await review_message.edit(view=sync_view)
     sync_view = ReviewView()
     sync_view.disable_all_items()
     if review_message.embeds:
@@ -124,12 +131,83 @@ async def _close_ticket_channel(
     await db.clear_ticket_channel(application.message_id)
 
 
+async def _grant_role(
+    interaction: discord.Interaction, application: db.Application
+) -> None:
+    role_id = settings.config.start_screen.role_id
+    if role_id is None or interaction.guild is None:
+        return
+    role = interaction.guild.get_role(role_id)
+    if role is None:
+        logger.warning("role {id} not found", id=role_id)
+        return
+    try:
+        member = await interaction.guild.fetch_member(application.user_id)
+        await member.add_roles(role, reason="Application accepted")
+    except discord.NotFound:
+        logger.warning("user {uid} not in guild", uid=application.user_id)
+    except discord.Forbidden:
+        logger.warning(
+            "cannot grant role {id} to user {uid}", id=role_id, uid=application.user_id
+        )
+
+
+async def _notify_user(
+    interaction: discord.Interaction,
+    application: db.Application,
+    status: Literal["accepted", "denied"],
+    footer: str,
+    reason: str | None,
+) -> None:
+    client = interaction.client
+    user = client.get_user(application.user_id)
+    if user is None:
+        try:
+            user = await client.fetch_user(application.user_id)
+        except discord.NotFound:
+            return
+    copy_id = application.user_copy_message_id
+    if copy_id is not None:
+        try:
+            dm = await user.create_dm()
+            copy = await dm.fetch_message(copy_id)
+        except (discord.Forbidden, discord.NotFound):
+            copy = None
+        if copy is not None:
+            sync_view = ApplicationCopyView()
+            sync_view.disable_all_items()
+            if copy.embeds:
+                copy.embeds[0].set_footer(text=footer)
+                await copy.edit(embed=copy.embeds[0], view=sync_view)
+            else:
+                await copy.edit(view=sync_view)
+    dm_settings = settings.start_screen.review.dm
+    if status == "accepted":
+        text = dm_settings.accepted.replace("{user}", application.username)
+    elif reason:
+        text = dm_settings.denied_with_reason.replace("{reason}", reason)
+    else:
+        text = dm_settings.denied
+    try:
+        await user.send(text)
+    except discord.Forbidden:
+        logger.warning(
+            "cannot DM user {id} about {status}", id=application.user_id, status=status
+        )
+
+
 async def _decide(
     interaction: discord.Interaction,
     status: Literal["accepted", "denied", "deleted"],
-    view: discord.ui.View,
+    view: discord.ui.View | None,
+    *,
+    application: db.Application | None = None,
+    reason: str | None = None,
 ) -> None:
-    application = await _record_decision(interaction, status)
+    if application is None:
+        application = await _find_application(interaction)
+    if application is not None:
+        await db.update_status(application.message_id, status)
     buttons = settings.start_screen.buttons
     reply = {
         "accepted": buttons.accept_reply,
@@ -137,9 +215,16 @@ async def _decide(
         "deleted": buttons.delete_reply,
     }[status]
     message = interaction.message
-    user = interaction.user.display_name if interaction.user else "unknown"
+    user = interaction.user.name if interaction.user else "unknown"
     footer = build_decision_footer(status, user)
+    await interaction.response.defer(ephemeral=True)
     if message is not None:
+        if view is None:
+            review_channel_id = settings.config.start_screen.review_channel
+            if review_channel_id is not None and message.channel.id == review_channel_id:
+                view = ReviewView()
+            else:
+                view = TicketView()
         view.disable_all_items()
         if message.embeds:
             message.embeds[0].set_footer(text=footer)
@@ -147,9 +232,37 @@ async def _decide(
         else:
             await message.edit(view=view)
     await _sync_review_message(interaction, application, message, footer)
-    if application is not None and status != "deleted":
-        await _close_ticket_channel(interaction, application)
-    await interaction.response.send_message(reply, ephemeral=True)
+    if application is not None:
+        if status == "accepted":
+            await _grant_role(interaction, application)
+        if status in ("accepted", "denied"):
+            await _notify_user(interaction, application, status, footer, reason)
+        if status != "deleted":
+            await _close_ticket_channel(interaction, application)
+    await interaction.followup.send(reply, ephemeral=True)
+
+
+class DenyReasonModal(discord.ui.Modal):
+    def __init__(self, message_id: int):
+        modal = settings.start_screen.review.deny_modal
+        super().__init__(title=modal.title, custom_id=f"deny_reason:{message_id}")
+        self.add_item(
+            discord.ui.InputText(
+                label=modal.label,
+                placeholder=modal.placeholder or None,
+                style=discord.InputTextStyle.long,
+                required=True,
+                max_length=1000,
+            )
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        reason = self.children[0].value or ""
+        message_id = int((interaction.custom_id or "").split(":", 1)[1])
+        application = await db.get_by_message(message_id)
+        await _decide(
+            interaction, "denied", None, application=application, reason=reason
+        )
 
 
 class StartFlowModal(discord.ui.Modal):
@@ -184,7 +297,7 @@ class StartFlowModal(discord.ui.Modal):
             return
         embed = build_review_embed(interaction.user, answers)
         user_id = interaction.user.id
-        username = interaction.user.display_name
+        username = interaction.user.name
         if settings.config.start_screen.mode == "direct":
             sent = await create_ticket_channel(interaction, embed, username)
             if sent is not None:
@@ -261,6 +374,13 @@ class ReviewView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if settings.config.start_screen.deny_reason:
+            application = await _find_application(interaction)
+            if application is not None:
+                await interaction.response.send_modal(
+                    DenyReasonModal(application.message_id)
+                )
+                return
         await _decide(interaction, "denied", ReviewView())
 
     @discord.ui.button(
@@ -321,4 +441,11 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if settings.config.start_screen.deny_reason:
+            application = await _find_application(interaction)
+            if application is not None:
+                await interaction.response.send_modal(
+                    DenyReasonModal(application.message_id)
+                )
+                return
         await _decide(interaction, "denied", TicketView())

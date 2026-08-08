@@ -2,6 +2,8 @@
 mode = "review"
 review_channel = 1535615216769962074
 timezone = "UTC"
+role_id = "1486409575421968484"
+deny_reason = false
 
 [start_screen.ticket]
 category = 1535615119822692412
