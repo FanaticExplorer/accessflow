@@ -1,0 +1,11 @@
+[start_screen]
+modal_title = "Get Started"
+button_label = "Get Started"
+ack_message = "Welcome message sent!"
+confirmation_message = "Thanks, {name}! Your answers (including your interest in {interest}) were saved. We'll reach out to you! (And we won't forget the note you left: {note})"
+
+[start_screen.embed]
+title = "Welcome to the server"
+description = "Press the button below and answer few questions to get started!"
+color = "#5865F2"
+image = ""

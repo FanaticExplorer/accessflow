@@ -1,0 +1,30 @@
+[[question]]
+key = "name"
+label = "What should we call you?"
+placeholder = "Your name or nickname"
+style = "short"
+required = true
+min_length = 1
+max_length = 60
+custom_id = "question:name"
+row = 0
+
+[[question]]
+key = "interest"
+label = "What are you interested in?"
+placeholder = "e.g. Python, design, gaming"
+style = "short"
+required = false
+max_length = 200
+value = "Python"
+custom_id = "question:interest"
+row = 1
+
+[[question]]
+key = "note"
+label = "Anything else we should know?"
+style = "long"
+required = false
+max_length = 1000
+custom_id = "question:note"
+row = 2

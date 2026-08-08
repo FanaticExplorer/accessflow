@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+import re
+import tomllib
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+CONFIG_DIR = Path(__file__).resolve().parent / "config"
+
+_PLACEHOLDER_RE = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+class EmbedSettings(BaseModel):
+    title: str
+    description: str
+    color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
+    image: str = ""
+
+    @field_validator("image")
+    @classmethod
+    def _check_image_url(cls, value: str) -> str:
+        if value and not value.startswith(("http://", "https://", "attachment://")):
+            raise ValueError(
+                f"'image' must be a URL (http://, https:// or attachment://), got {value!r}"
+            )
+        return value
+
+
+class StartScreenSettings(BaseModel):
+    modal_title: str
+    button_label: str
+    ack_message: str
+    confirmation_message: str
+    embed: EmbedSettings
+
+
+class QuestionSettings(BaseModel):
+    key: str = Field(min_length=1)
+    label: str = Field(min_length=1, max_length=45)
+    placeholder: str = Field("", max_length=100)
+    style: Literal["short", "long"] = "short"
+    required: bool = False
+    min_length: int | None = Field(None, ge=0, le=4000)
+    max_length: int | None = Field(None, ge=1, le=4000)
+    value: str | None = Field(None, max_length=4000)
+    custom_id: str | None = Field(None, max_length=100)
+    row: int | None = Field(None, ge=0, le=4)
+
+    @model_validator(mode="after")
+    def _check_length_range(self) -> QuestionSettings:
+        if (
+            self.min_length is not None
+            and self.max_length is not None
+            and self.min_length > self.max_length
+        ):
+            raise ValueError(
+                f"'min_length' ({self.min_length}) cannot exceed 'max_length' "
+                f"({self.max_length})"
+            )
+        return self
+
+
+class ContentFile(BaseModel):
+    start_screen: StartScreenSettings
+
+
+class QuestionsFile(BaseModel):
+    question: list[QuestionSettings] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _check_unique_keys(self) -> QuestionsFile:
+        keys = [q.key for q in self.question]
+        duplicates = sorted({k for k in keys if keys.count(k) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate question keys: {', '.join(duplicates)}")
+        return self
+
+
+class Settings(BaseModel):
+    start_screen: StartScreenSettings
+    questions: list[QuestionSettings]
+
+    @model_validator(mode="after")
+    def _check_confirmation_placeholders(self) -> Settings:
+        known_keys = {q.key for q in self.questions}
+        placeholders = set(_PLACEHOLDER_RE.findall(self.start_screen.confirmation_message))
+        unknown = placeholders - known_keys
+        if unknown:
+            raise ValueError(
+                "'start_screen.confirmation_message' references unknown question keys: "
+                f"{', '.join(sorted(unknown))}"
+            )
+        return self
+
+
+def _read_toml(filename: str) -> dict:
+    path = CONFIG_DIR / filename
+    try:
+        with path.open("rb") as f:
+            return tomllib.load(f)
+    except FileNotFoundError:
+        raise RuntimeError(f"config: missing file {path}") from None
+    except tomllib.TOMLDecodeError as exc:
+        raise RuntimeError(f"config: invalid TOML in {path}: {exc}") from None
+
+
+def load_settings() -> Settings:
+    content = ContentFile.model_validate(_read_toml("content.toml"))
+    questions_file = QuestionsFile.model_validate(_read_toml("questions.toml"))
+    return Settings(
+        start_screen=content.start_screen,
+        questions=questions_file.question,
+    )

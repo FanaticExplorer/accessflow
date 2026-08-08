@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "loguru>=0.7.3",
     "py-cord[speed]>=2.8.1",
+    "pydantic>=2.13.4",
 ]
