@@ -1,5 +1,5 @@
 [start_screen]
-mode = "direct"
+mode = "review"
 review_channel = 1535615216769962074
 
 [start_screen.ticket]
