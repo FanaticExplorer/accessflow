@@ -28,6 +28,20 @@ class EmbedSettings(BaseModel):
         return value
 
 
+class TicketMessageSettings(EmbedSettings):
+    @model_validator(mode="after")
+    def _check_placeholders(self) -> TicketMessageSettings:
+        for field_name in ("title", "description"):
+            text = getattr(self, field_name)
+            unknown = set(_PLACEHOLDER_RE.findall(text)) - {"user"}
+            if unknown:
+                raise ValueError(
+                    f"'review.ticket.{field_name}' may only use the '{{user}}' "
+                    f"placeholder, got: {', '.join(sorted(unknown))}"
+                )
+        return self
+
+
 class ReviewEmbedSettings(BaseModel):
     title: str
     color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
@@ -36,6 +50,7 @@ class ReviewEmbedSettings(BaseModel):
     joined_label: str = "Member joined"
     accepted_footer: str = "Application accepted by {user}"
     denied_footer: str = "Application denied by {user}"
+    ticket: TicketMessageSettings
 
 
 class ButtonsSettings(BaseModel):

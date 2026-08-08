@@ -5,7 +5,12 @@ from discord.abc import Messageable
 from loguru import logger
 
 import db
-from embeds import build_decision_footer, build_review_embed, sanitize_channel_name
+from embeds import (
+    build_decision_footer,
+    build_review_embed,
+    build_ticket_message_embed,
+    sanitize_channel_name,
+)
 from settings import QuestionSettings, Settings, load_settings
 
 settings: Settings = load_settings()
@@ -48,7 +53,7 @@ async def create_ticket_channel(
 
 async def _record_decision(
     interaction: discord.Interaction, status: Literal["accepted", "denied"]
-) -> None:
+) -> db.Application | None:
     application = None
     if interaction.message is not None:
         application = await db.get_by_message(interaction.message.id)
@@ -56,6 +61,55 @@ async def _record_decision(
         application = await db.get_by_ticket_channel(interaction.channel_id)
     if application is not None:
         await db.update_status(application.message_id, status)
+    return application
+
+
+async def _sync_review_message(
+    interaction: discord.Interaction,
+    application: db.Application | None,
+    message: discord.Message | None,
+    footer: str,
+) -> None:
+    if application is None or message is None or application.message_id == message.id:
+        return
+    review_channel_id = settings.config.start_screen.review_channel
+    if review_channel_id is None or interaction.guild is None:
+        return
+    channel = interaction.guild.get_channel(review_channel_id)
+    if not isinstance(channel, Messageable):
+        return
+    try:
+        review_message = await channel.fetch_message(application.message_id)
+    except (discord.NotFound, discord.Forbidden):
+        return
+    sync_view = ReviewView()
+    sync_view.disable_all_items()
+    if review_message.embeds:
+        review_message.embeds[0].set_footer(text=footer)
+        await review_message.edit(embed=review_message.embeds[0], view=sync_view)
+    else:
+        await review_message.edit(view=sync_view)
+
+
+async def _close_ticket_channel(
+    interaction: discord.Interaction, application: db.Application
+) -> None:
+    channel_id = application.ticket_channel_id
+    if channel_id is None or interaction.guild is None:
+        return
+    channel = interaction.guild.get_channel(channel_id)
+    if not isinstance(channel, discord.TextChannel):
+        try:
+            channel = await interaction.guild.fetch_channel(channel_id)
+        except (discord.NotFound, discord.Forbidden):
+            return
+        if not isinstance(channel, discord.TextChannel):
+            return
+    try:
+        await channel.delete(reason="Application decided")
+    except (discord.NotFound, discord.Forbidden):
+        return
+    await db.clear_ticket_channel(application.message_id)
 
 
 async def _decide(
@@ -63,21 +117,25 @@ async def _decide(
     status: Literal["accepted", "denied"],
     view: discord.ui.View,
 ) -> None:
-    await _record_decision(interaction, status)
+    application = await _record_decision(interaction, status)
     reply = (
         settings.start_screen.buttons.accept_reply
         if status == "accepted"
         else settings.start_screen.buttons.deny_reply
     )
     message = interaction.message
+    admin = interaction.user.display_name if interaction.user else "unknown"
+    footer = build_decision_footer(status, admin)
     if message is not None:
         view.disable_all_items()
         if message.embeds:
-            admin = interaction.user.display_name if interaction.user else "unknown"
-            message.embeds[0].set_footer(text=build_decision_footer(status, admin))
+            message.embeds[0].set_footer(text=footer)
             await message.edit(embed=message.embeds[0], view=view)
         else:
             await message.edit(view=view)
+    await _sync_review_message(interaction, application, message, footer)
+    if application is not None:
+        await _close_ticket_channel(interaction, application)
     await interaction.response.send_message(reply, ephemeral=True)
 
 
@@ -195,7 +253,9 @@ class ReviewView(discord.ui.View):
             applicant = review_embed.author.name
         else:
             applicant = interaction.user.name if interaction.user else "ticket"
-        sent = await create_ticket_channel(interaction, review_embed, applicant)
+        sent = await create_ticket_channel(
+            interaction, build_ticket_message_embed(applicant), applicant
+        )
         if sent is not None:
             if application is not None:
                 await db.set_ticket_channel(application.message_id, sent.channel.id)

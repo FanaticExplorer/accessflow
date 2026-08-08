@@ -19,6 +19,12 @@ joined_label = "Member joined"
 accepted_footer = "Application accepted by {user}"
 denied_footer = "Application denied by {user}"
 
+[start_screen.review.ticket]
+title = "Welcome!"
+description = "Please answer a few questions here."
+color = "#5865F2"
+image = ""
+
 [start_screen.buttons]
 accept = "Accept"
 deny = "Deny"

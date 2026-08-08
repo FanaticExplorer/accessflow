@@ -30,6 +30,18 @@ def build_start_embed() -> discord.Embed:
     return embed
 
 
+def build_ticket_message_embed(applicant: str) -> discord.Embed:
+    tm = settings.start_screen.review.ticket
+    embed = discord.Embed(
+        title=tm.title.replace("{user}", applicant),
+        description=tm.description.replace("{user}", applicant),
+        color=parse_color(tm.color),
+    )
+    if tm.image:
+        embed.set_image(url=tm.image)
+    return embed
+
+
 def _timestamps(dt: datetime | None) -> str:
     if dt is None:
         return "—"

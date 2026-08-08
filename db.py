@@ -139,3 +139,12 @@ async def set_ticket_channel(message_id: int, ticket_channel_id: int) -> None:
         (ticket_channel_id, message_id),
     )
     await conn.commit()
+
+
+async def clear_ticket_channel(message_id: int) -> None:
+    conn = _conn()
+    await conn.execute(
+        "UPDATE applications SET ticket_channel_id = NULL WHERE message_id = ?",
+        (message_id,),
+    )
+    await conn.commit()
