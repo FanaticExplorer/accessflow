@@ -12,13 +12,22 @@ row = 0
 [[question]]
 key = "interest"
 label = "What are you interested in?"
-placeholder = "e.g. Python, design, gaming"
+placeholder = "e.g. Coding, design, gaming"
 style = "short"
 required = false
 max_length = 200
-value = "Python"
 custom_id = "question:interest"
 row = 1
+
+[[question]]
+key = "how_found"
+label = "How did you find our server?"
+placeholder = "e.g. a friend, a link, another server"
+style = "short"
+required = false
+max_length = 200
+custom_id = "question:how_found"
+row = 2
 
 [[question]]
 key = "note"
@@ -27,4 +36,4 @@ style = "long"
 required = false
 max_length = 1000
 custom_id = "question:note"
-row = 2
+row = 3
