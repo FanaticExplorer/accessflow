@@ -42,6 +42,11 @@ class TicketMessageSettings(EmbedSettings):
         return self
 
 
+class CopyEmbedSettings(BaseModel):
+    title: str
+    color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
+
+
 class ReviewEmbedSettings(BaseModel):
     title: str
     color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
@@ -50,6 +55,10 @@ class ReviewEmbedSettings(BaseModel):
     joined_label: str = "Member joined"
     accepted_footer: str = "Application accepted by {user}"
     denied_footer: str = "Application denied by {user}"
+    deleted_footer: str = "Application deleted by {user}"
+    send_copy: bool = True
+    allow_delete: bool = True
+    copy_embed: CopyEmbedSettings
     ticket: TicketMessageSettings
 
 
@@ -57,8 +66,10 @@ class ButtonsSettings(BaseModel):
     accept: str
     deny: str
     open_ticket: str
+    delete: str
     accept_reply: str
     deny_reply: str
+    delete_reply: str
 
 
 class StartScreenSettings(BaseModel):

@@ -9,6 +9,7 @@ from embeds import (
     build_decision_footer,
     build_review_embed,
     build_ticket_message_embed,
+    build_user_copy_embed,
     sanitize_channel_name,
 )
 from settings import QuestionSettings, Settings, load_settings
@@ -52,11 +53,13 @@ async def create_ticket_channel(
 
 
 async def _record_decision(
-    interaction: discord.Interaction, status: Literal["accepted", "denied"]
+    interaction: discord.Interaction, status: Literal["accepted", "denied", "deleted"]
 ) -> db.Application | None:
     application = None
     if interaction.message is not None:
         application = await db.get_by_message(interaction.message.id)
+    if application is None and interaction.message is not None:
+        application = await db.get_by_user_copy_message(interaction.message.id)
     if application is None and interaction.channel_id is not None:
         application = await db.get_by_ticket_channel(interaction.channel_id)
     if application is not None:
@@ -73,9 +76,18 @@ async def _sync_review_message(
     if application is None or message is None or application.message_id == message.id:
         return
     review_channel_id = settings.config.start_screen.review_channel
-    if review_channel_id is None or interaction.guild is None:
+    if review_channel_id is None:
         return
-    channel = interaction.guild.get_channel(review_channel_id)
+    channel = (
+        interaction.guild.get_channel(review_channel_id)
+        if interaction.guild is not None
+        else None
+    )
+    if not isinstance(channel, Messageable):
+        try:
+            channel = await interaction.client.fetch_channel(review_channel_id)
+        except discord.NotFound:
+            return
     if not isinstance(channel, Messageable):
         return
     try:
@@ -114,18 +126,19 @@ async def _close_ticket_channel(
 
 async def _decide(
     interaction: discord.Interaction,
-    status: Literal["accepted", "denied"],
+    status: Literal["accepted", "denied", "deleted"],
     view: discord.ui.View,
 ) -> None:
     application = await _record_decision(interaction, status)
-    reply = (
-        settings.start_screen.buttons.accept_reply
-        if status == "accepted"
-        else settings.start_screen.buttons.deny_reply
-    )
+    buttons = settings.start_screen.buttons
+    reply = {
+        "accepted": buttons.accept_reply,
+        "denied": buttons.deny_reply,
+        "deleted": buttons.delete_reply,
+    }[status]
     message = interaction.message
-    admin = interaction.user.display_name if interaction.user else "unknown"
-    footer = build_decision_footer(status, admin)
+    user = interaction.user.display_name if interaction.user else "unknown"
+    footer = build_decision_footer(status, user)
     if message is not None:
         view.disable_all_items()
         if message.embeds:
@@ -134,7 +147,7 @@ async def _decide(
         else:
             await message.edit(view=view)
     await _sync_review_message(interaction, application, message, footer)
-    if application is not None:
+    if application is not None and status != "deleted":
         await _close_ticket_channel(interaction, application)
     await interaction.response.send_message(reply, ephemeral=True)
 
@@ -200,6 +213,19 @@ class StartFlowModal(discord.ui.Modal):
             username=username,
             answers=answers,
         )
+        if settings.start_screen.review.send_copy:
+            try:
+                copy_embed = build_user_copy_embed(answers)
+                if settings.start_screen.review.allow_delete:
+                    copy = await interaction.user.send(
+                        embed=copy_embed, view=ApplicationCopyView()
+                    )
+                else:
+                    copy = await interaction.user.send(embed=copy_embed)
+            except discord.Forbidden:
+                logger.warning("cannot DM application copy to user {id}", id=user_id)
+            else:
+                await db.set_user_copy_message(sent.id, copy.id)
 
 
 class StartFlowView(discord.ui.View):
@@ -262,6 +288,19 @@ class ReviewView(discord.ui.View):
             await interaction.followup.send(
                 f"Ticket created: <#{sent.channel.id}>", ephemeral=True
             )
+
+
+class ApplicationCopyView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label=settings.start_screen.buttons.delete,
+        custom_id="application:delete",
+        style=discord.ButtonStyle.danger,
+    )
+    async def delete(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await _decide(interaction, "deleted", ApplicationCopyView())
 
 
 class TicketView(discord.ui.View):

@@ -18,6 +18,13 @@ created_label = "Account created"
 joined_label = "Member joined"
 accepted_footer = "Application accepted by {user}"
 denied_footer = "Application denied by {user}"
+deleted_footer = "Application deleted by {user}"
+send_copy = true
+allow_delete = true
+
+[start_screen.review.copy_embed]
+title = "Your application"
+color = "#5865F2"
 
 [start_screen.review.ticket]
 title = "Welcome!"
@@ -29,5 +36,7 @@ image = ""
 accept = "Accept"
 deny = "Deny"
 open_ticket = "Open ticket"
+delete = "Delete application"
 accept_reply = "Accept — placeholder"
 deny_reply = "Deny — placeholder"
+delete_reply = "Your application was deleted."

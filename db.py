@@ -21,11 +21,12 @@ CREATE TABLE IF NOT EXISTS applications (
     answers TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
     ticket_channel_id INTEGER,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    user_copy_message_id INTEGER
 )
 """
 
-Status = Literal["pending", "accepted", "denied"]
+Status = Literal["pending", "accepted", "denied", "deleted"]
 
 _db: aiosqlite.Connection | None = None
 
@@ -39,6 +40,7 @@ class Application:
     status: Status
     ticket_channel_id: int | None
     created_at: str
+    user_copy_message_id: int | None
 
 
 async def init_db(db_path: Path = DB_PATH) -> None:
@@ -74,6 +76,7 @@ def _row_to_application(row: sqlite3.Row) -> Application:
         status=row[5],
         ticket_channel_id=row[6],
         created_at=row[7],
+        user_copy_message_id=row[8],
     )
 
 
@@ -146,5 +149,25 @@ async def clear_ticket_channel(message_id: int) -> None:
     await conn.execute(
         "UPDATE applications SET ticket_channel_id = NULL WHERE message_id = ?",
         (message_id,),
+    )
+    await conn.commit()
+
+
+async def get_by_user_copy_message(user_copy_message_id: int) -> Application | None:
+    conn = _conn()
+    cursor = await conn.execute(
+        "SELECT * FROM applications WHERE user_copy_message_id = ?",
+        (user_copy_message_id,),
+    )
+    row = await cursor.fetchone()
+    await cursor.close()
+    return _row_to_application(row) if row is not None else None
+
+
+async def set_user_copy_message(message_id: int, user_copy_message_id: int) -> None:
+    conn = _conn()
+    await conn.execute(
+        "UPDATE applications SET user_copy_message_id = ? WHERE message_id = ?",
+        (user_copy_message_id, message_id),
     )
     await conn.commit()

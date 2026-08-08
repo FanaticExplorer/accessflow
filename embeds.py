@@ -60,17 +60,29 @@ def parse_timezone(value: str) -> timezone:
     return timezone(sign * offset)
 
 
-def build_decision_footer(status: Literal["accepted", "denied"], admin: str) -> str:
+def build_decision_footer(
+    status: Literal["accepted", "denied", "deleted"], user: str
+) -> str:
     start = settings.start_screen
-    template = (
-        start.review.accepted_footer
-        if status == "accepted"
-        else start.review.denied_footer
-    )
-    text = template.replace("{user}", admin)
+    template = {
+        "accepted": start.review.accepted_footer,
+        "denied": start.review.denied_footer,
+        "deleted": start.review.deleted_footer,
+    }[status]
+    text = template.replace("{user}", user)
     now = datetime.now(parse_timezone(settings.config.start_screen.timezone))
     label = settings.config.start_screen.timezone
     return f"{text}\n{now.strftime('%Y-%m-%d %H:%M')} {label}"
+
+
+def build_user_copy_embed(answers: dict[str, str]) -> discord.Embed:
+    copy = settings.start_screen.review.copy_embed
+    embed = discord.Embed(title=copy.title, color=parse_color(copy.color))
+    for question in settings.questions:
+        embed.add_field(
+            name=question.label, value=answers.get(question.key, "") or "—", inline=False
+        )
+    return embed
 
 
 def build_review_embed(

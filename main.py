@@ -7,7 +7,7 @@ from loguru import logger
 import db
 from embeds import build_start_embed
 from settings import Settings, load_settings
-from views import ReviewView, StartFlowView, TicketView
+from views import ApplicationCopyView, ReviewView, StartFlowView, TicketView
 
 settings: Settings = load_settings()
 intents = discord.Intents.default()
@@ -27,6 +27,7 @@ class AccessFlowBot(discord.Bot):
             self.add_view(StartFlowView())
             self.add_view(ReviewView())
             self.add_view(TicketView())
+            self.add_view(ApplicationCopyView())
         await super().before_identify_hook(shard_id, initial=initial)
 
     async def close(self) -> None:
