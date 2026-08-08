@@ -25,12 +25,14 @@ async def create_ticket_channel(
     if guild is None:
         return None
     ticket = settings.config.start_screen.ticket
-    category = guild.get_channel(ticket.category)
-    if not isinstance(category, discord.CategoryChannel):
-        await interaction.followup.send(
-            "Ticket category is not configured correctly.", ephemeral=True
-        )
-        return None
+    category = None
+    if ticket.category is not None:
+        category = guild.get_channel(ticket.category)
+        if not isinstance(category, discord.CategoryChannel):
+            await interaction.followup.send(
+                "Ticket category is not configured correctly.", ephemeral=True
+            )
+            return None
     name = sanitize_channel_name(f"{ticket.name_prefix}{applicant_name}")
     try:
         channel = await guild.create_text_channel(name, category=category)

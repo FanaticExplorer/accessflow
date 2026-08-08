@@ -94,8 +94,15 @@ class QuestionsFile(BaseModel):
 
 
 class TicketSettings(BaseModel):
-    category: int = Field(gt=0)
+    category: int | None = Field(None, gt=0)
     name_prefix: str = Field(min_length=1)
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _empty_category_to_none(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
 
 
 class StartScreenConfig(BaseModel):
