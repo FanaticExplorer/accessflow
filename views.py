@@ -1,7 +1,10 @@
+from typing import Literal
+
 import discord
 from discord.abc import Messageable
 from loguru import logger
 
+import db
 from embeds import build_review_embed, sanitize_channel_name
 from settings import QuestionSettings, Settings, load_settings
 
@@ -17,7 +20,7 @@ async def create_ticket_channel(
     interaction: discord.Interaction,
     embed: discord.Embed | None,
     applicant_name: str,
-) -> discord.TextChannel | None:
+) -> discord.Message | None:
     guild = interaction.guild
     if guild is None:
         return None
@@ -36,9 +39,21 @@ async def create_ticket_channel(
             "I don't have permission to create channels here.", ephemeral=True
         )
         return None
-    if embed is not None:
-        await channel.send(embed=embed, view=TicketView())
-    return channel
+    if embed is None:
+        return None
+    return await channel.send(embed=embed, view=TicketView())
+
+
+async def _record_decision(
+    interaction: discord.Interaction, status: Literal["accepted", "denied"]
+) -> None:
+    application = None
+    if interaction.message is not None:
+        application = await db.get_by_message(interaction.message.id)
+    if application is None and interaction.channel_id is not None:
+        application = await db.get_by_ticket_channel(interaction.channel_id)
+    if application is not None:
+        await db.update_status(application.message_id, status)
 
 
 class StartFlowModal(discord.ui.Modal):
@@ -72,13 +87,20 @@ class StartFlowModal(discord.ui.Modal):
         if interaction.guild is None or interaction.user is None:
             return
         embed = build_review_embed(interaction.user, answers)
+        user_id = interaction.user.id
+        username = interaction.user.display_name
         if settings.config.start_screen.mode == "direct":
-            channel = await create_ticket_channel(
-                interaction, embed, interaction.user.display_name
-            )
-            if channel is not None:
+            sent = await create_ticket_channel(interaction, embed, username)
+            if sent is not None:
+                await db.save_application(
+                    message_id=sent.id,
+                    user_id=user_id,
+                    username=username,
+                    answers=answers,
+                    ticket_channel_id=sent.channel.id,
+                )
                 await interaction.followup.send(
-                    f"Ticket created: {channel.mention}", ephemeral=True
+                    f"Ticket created: <#{sent.channel.id}>", ephemeral=True
                 )
             return
         review_channel_id = settings.config.start_screen.review_channel
@@ -88,7 +110,13 @@ class StartFlowModal(discord.ui.Modal):
         if not isinstance(review_channel, Messageable):
             logger.warning("review channel {id} not found", id=review_channel_id)
             return
-        await review_channel.send(embed=embed, view=ReviewView())
+        sent = await review_channel.send(embed=embed, view=ReviewView())
+        await db.save_application(
+            message_id=sent.id,
+            user_id=user_id,
+            username=username,
+            answers=answers,
+        )
 
 
 class StartFlowView(discord.ui.View):
@@ -116,6 +144,7 @@ class ReviewView(discord.ui.View):
         style=discord.ButtonStyle.success,
     )
     async def accept(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await _record_decision(interaction, "accepted")
         await interaction.response.send_message(
             settings.start_screen.buttons.accept_reply, ephemeral=True
         )
@@ -126,6 +155,7 @@ class ReviewView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await _record_decision(interaction, "denied")
         await interaction.response.send_message(
             settings.start_screen.buttons.deny_reply, ephemeral=True
         )
@@ -137,16 +167,21 @@ class ReviewView(discord.ui.View):
     )
     async def open_ticket(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        review_embed = interaction.message.embeds[0] if interaction.message else None
-        applicant = (
-            review_embed.author.name
-            if review_embed and review_embed.author
-            else (interaction.user.name if interaction.user else "ticket")
-        )
-        channel = await create_ticket_channel(interaction, review_embed, applicant)
-        if channel is not None:
+        message = interaction.message
+        review_embed = message.embeds[0] if message is not None else None
+        application = await db.get_by_message(message.id) if message is not None else None
+        if application is not None:
+            applicant = application.username
+        elif review_embed is not None and review_embed.author is not None:
+            applicant = review_embed.author.name
+        else:
+            applicant = interaction.user.name if interaction.user else "ticket"
+        sent = await create_ticket_channel(interaction, review_embed, applicant)
+        if sent is not None:
+            if application is not None:
+                await db.set_ticket_channel(application.message_id, sent.channel.id)
             await interaction.followup.send(
-                f"Ticket created: {channel.mention}", ephemeral=True
+                f"Ticket created: <#{sent.channel.id}>", ephemeral=True
             )
 
 
@@ -160,6 +195,7 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.success,
     )
     async def accept(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await _record_decision(interaction, "accepted")
         await interaction.response.send_message(
             settings.start_screen.buttons.accept_reply, ephemeral=True
         )
@@ -170,6 +206,7 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await _record_decision(interaction, "denied")
         await interaction.response.send_message(
             settings.start_screen.buttons.deny_reply, ephemeral=True
         )

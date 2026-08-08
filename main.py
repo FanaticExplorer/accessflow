@@ -4,6 +4,7 @@ import discord
 from discord.abc import Messageable
 from loguru import logger
 
+import db
 from embeds import build_start_embed
 from settings import Settings, load_settings
 from views import ReviewView, StartFlowView, TicketView
@@ -22,10 +23,15 @@ class AccessFlowBot(discord.Bot):
     ) -> None:
         if initial and not self._views_registered:
             self._views_registered = True
+            await db.init_db()
             self.add_view(StartFlowView())
             self.add_view(ReviewView())
             self.add_view(TicketView())
         await super().before_identify_hook(shard_id, initial=initial)
+
+    async def close(self) -> None:
+        await db.close_db()
+        await super().close()
 
 
 bot = AccessFlowBot()
