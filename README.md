@@ -32,6 +32,15 @@ My friends asked me to make this... so why not.
 - Set the `BOT_TOKEN` env var
 - `uv sync && uv run python main.py`
 
+### Docker
+
+```sh
+cp .env.example .env   # then set BOT_TOKEN
+uv run docker compose up -d --build
+```
+
+The SQLite database persists in `./data`.
+
 The bot needs Send Messages, Embed Links, Manage Channels, Manage Roles and
 Read Message History. Enable the Message Content privileged intent (required
 for ticket transcripts). The SQLite database is created automatically at

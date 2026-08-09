@@ -21,7 +21,7 @@ custom_id = "question:name"
 row = 0
 
 [[question]]
-key = "interest"
+key = ""
 label = "What are you interested in?"
 placeholder = "e.g. Coding, design, gaming"
 style = "short"

@@ -1,0 +1,10 @@
+services:
+  accessflow:
+    build: .
+    container_name: accessflow
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      # SQLite database, persists across restarts/rebuilds
+      - ./data:/app/data
