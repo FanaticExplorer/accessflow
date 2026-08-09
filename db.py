@@ -164,6 +164,18 @@ async def get_by_user_copy_message(user_copy_message_id: int) -> Application | N
     return _row_to_application(row) if row is not None else None
 
 
+async def get_active_by_user(user_id: int) -> Application | None:
+    conn = _conn()
+    cursor = await conn.execute(
+        "SELECT * FROM applications WHERE user_id = ? AND status = 'pending' "
+        "ORDER BY id DESC LIMIT 1",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    await cursor.close()
+    return _row_to_application(row) if row is not None else None
+
+
 async def set_user_copy_message(message_id: int, user_copy_message_id: int) -> None:
     conn = _conn()
     await conn.execute(

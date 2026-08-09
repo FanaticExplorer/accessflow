@@ -286,6 +286,13 @@ class StartFlowModal(discord.ui.Modal):
         super().__init__(*inputs, title=title)
 
     async def callback(self, interaction: discord.Interaction):
+        if interaction.user is not None and await db.get_active_by_user(
+            interaction.user.id
+        ):
+            await interaction.response.send_message(
+                settings.start_screen.existing_application_message, ephemeral=True
+            )
+            return
         message = settings.start_screen.confirmation_message
         answers: dict[str, str] = {}
         for key, field in self.fields:
@@ -351,6 +358,13 @@ class StartFlowView(discord.ui.View):
         style=discord.ButtonStyle.primary,
     )
     async def get_started(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if interaction.user is not None and await db.get_active_by_user(
+            interaction.user.id
+        ):
+            await interaction.response.send_message(
+                settings.start_screen.existing_application_message, ephemeral=True
+            )
+            return
         await interaction.response.send_modal(
             StartFlowModal(settings.questions, settings.start_screen.modal_title)
         )

@@ -104,6 +104,7 @@ class StartScreenSettings(BaseModel):
     button_label: str
     ack_message: str
     confirmation_message: str
+    existing_application_message: str = "You already have an active application!"
     welcome: EmbedSettings
     review: ReviewEmbedSettings
     buttons: ButtonsSettings
