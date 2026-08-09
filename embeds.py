@@ -28,6 +28,8 @@ def build_start_embed() -> discord.Embed:
     )
     if start.welcome.image:
         embed.set_image(url=start.welcome.image)
+    if start.welcome.footer:
+        embed.set_footer(text=start.welcome.footer)
     return embed
 
 

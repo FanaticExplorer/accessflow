@@ -28,6 +28,10 @@ class EmbedSettings(BaseModel):
         return value
 
 
+class WelcomeEmbedSettings(EmbedSettings):
+    footer: str = ""
+
+
 class TicketMessageSettings(EmbedSettings):
     @model_validator(mode="after")
     def _check_placeholders(self) -> TicketMessageSettings:
@@ -108,7 +112,7 @@ class StartScreenSettings(BaseModel):
     ack_message: str
     confirmation_message: str
     existing_application_message: str = "You already have an active application!"
-    welcome: EmbedSettings
+    welcome: WelcomeEmbedSettings
     application: ApplicationContentSettings
     review: ReviewContentSettings
     buttons: ButtonsSettings

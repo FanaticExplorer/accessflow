@@ -14,6 +14,8 @@ description = "Press the button below and answer few questions to get started!"
 color = "#5865F2"
 # Optional image URL; empty = no image
 image = ""
+# Optional footer text; empty = no footer
+footer = "Footer text"
 
 # The application embed — shown in both modes (review channel or ticket channel)
 [start_screen.application]
