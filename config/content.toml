@@ -1,54 +1,68 @@
+# Texts for the start screen flow: modal, button, acknowledgements
 [start_screen]
 modal_title = "Get Started"
 button_label = "Get Started"
 ack_message = "Welcome message sent!"
+# {name} is replaced with the applicant's answer to the "name" question
 confirmation_message = "Thanks, {name}! Your answers were saved."
 existing_application_message = "You already have an active application!"
 
+# The welcome embed the bot posts
 [start_screen.welcome]
 title = "Welcome to the server"
 description = "Press the button below and answer few questions to get started!"
 color = "#5865F2"
+# Optional image URL; empty = no image
 image = ""
 
-[start_screen.review]
+# The application embed — shown in both modes (review channel or ticket channel)
+[start_screen.application]
 user_label = "User"
 created_label = "Account created"
 joined_label = "Member joined"
+# {user} is replaced with the acting admin's username
 accepted_footer = "Application accepted by {user}"
 denied_footer = "Application denied by {user}"
 deleted_footer = "Application deleted by {user}"
 
-[start_screen.review.embed]
+# The embed admins see when reviewing an application
+[start_screen.application.embed]
 title = "New application"
 color = "#5865F2"
 
-[start_screen.review.dm]
+# Direct messages sent to the applicant
+[start_screen.application.dm]
 accepted = "Congratulations, {user}! Your application was accepted."
 denied = "Your application was declined."
+# {reason} is replaced with the reason the admin entered
 denied_with_reason = "Your application was declined. Reason: {reason}"
 
-[start_screen.review.deny_modal]
+# Modal shown to the admin when denying with a reason
+[start_screen.application.deny_modal]
 title = "Deny application"
 label = "Reason for denial"
 placeholder = "Tell the applicant why their application was declined."
 
-[start_screen.review.copy_embed]
+# The applicant's answers, DM'd to them as a copy
+[start_screen.application.copy_embed]
 title = "Your application"
 color = "#5865F2"
 
+# Embed posted when an admin opens a ticket from the review embed
 [start_screen.review.ticket]
 title = "Welcome!"
 description = "Please answer a few questions here."
 color = "#5865F2"
 image = ""
 
+# Button labels
 [start_screen.buttons]
 accept = "Accept"
 deny = "Deny"
 open_ticket = "Open ticket"
 delete = "Delete application"
 
+# Ephemeral replies shown after pressing a button
 [start_screen.buttons.reply]
 accept = "Accept — placeholder"
 deny = "Deny — placeholder"

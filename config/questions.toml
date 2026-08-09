@@ -1,3 +1,14 @@
+# One [[question]] per input in the application modal, in order.
+# Available fields:
+#   key          internal identifier; "name" must exist (content.toml uses it)
+#   label        text shown above the input (max 45 chars)
+#   placeholder  grey hint text inside the input
+#   style        "short" = one line, "long" = paragraph
+#   required     whether the question must be answered
+#   min_length / max_length  input length limits (optional)
+#   value        default value prefilled in the input (optional)
+#   custom_id    unique id for the input component; keep the "question:" prefix
+#   row          which row of the modal the input sits on (0-4)
 [[question]]
 key = "name"
 label = "What should we call you?"

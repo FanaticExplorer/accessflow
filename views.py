@@ -134,7 +134,7 @@ async def _close_ticket_channel(
 async def _grant_role(
     interaction: discord.Interaction, application: db.Application
 ) -> None:
-    role_id = settings.config.start_screen.review.role_id
+    role_id = settings.config.start_screen.application.role_id
     if role_id is None or interaction.guild is None:
         return
     role = interaction.guild.get_role(role_id)
@@ -181,7 +181,7 @@ async def _notify_user(
                 await copy.edit(embed=copy.embeds[0], view=sync_view)
             else:
                 await copy.edit(view=sync_view)
-    dm_settings = settings.start_screen.review.dm
+    dm_settings = settings.start_screen.application.dm
     if status == "accepted":
         text = dm_settings.accepted.replace("{user}", application.username)
     elif reason:
@@ -244,7 +244,7 @@ async def _decide(
 
 class DenyReasonModal(discord.ui.Modal):
     def __init__(self, message_id: int):
-        modal = settings.start_screen.review.deny_modal
+        modal = settings.start_screen.application.deny_modal
         super().__init__(title=modal.title, custom_id=f"deny_reason:{message_id}")
         self.add_item(
             discord.ui.InputText(
@@ -333,10 +333,10 @@ class StartFlowModal(discord.ui.Modal):
             username=username,
             answers=answers,
         )
-        if settings.config.start_screen.review.send_copy:
+        if settings.config.start_screen.application.send_copy:
             try:
                 copy_embed = build_user_copy_embed(answers)
-                if settings.config.start_screen.review.allow_delete:
+                if settings.config.start_screen.application.allow_delete:
                     copy = await interaction.user.send(
                         embed=copy_embed, view=ApplicationCopyView()
                     )
@@ -388,7 +388,7 @@ class ReviewView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
-        if settings.config.start_screen.review.require_deny_reason:
+        if settings.config.start_screen.application.require_deny_reason:
             application = await _find_application(interaction)
             if application is not None:
                 await interaction.response.send_modal(
@@ -455,7 +455,7 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
-        if settings.config.start_screen.review.require_deny_reason:
+        if settings.config.start_screen.application.require_deny_reason:
             application = await _find_application(interaction)
             if application is not None:
                 await interaction.response.send_modal(

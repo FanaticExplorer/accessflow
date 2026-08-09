@@ -65,9 +65,9 @@ def build_decision_footer(
 ) -> str:
     start = settings.start_screen
     template = {
-        "accepted": start.review.accepted_footer,
-        "denied": start.review.denied_footer,
-        "deleted": start.review.deleted_footer,
+        "accepted": start.application.accepted_footer,
+        "denied": start.application.denied_footer,
+        "deleted": start.application.deleted_footer,
     }[status]
     text = template.replace("{user}", user)
     now = datetime.now(parse_timezone(settings.config.start_screen.timezone))
@@ -76,7 +76,7 @@ def build_decision_footer(
 
 
 def build_user_copy_embed(answers: dict[str, str]) -> discord.Embed:
-    copy = settings.start_screen.review.copy_embed
+    copy = settings.start_screen.application.copy_embed
     embed = discord.Embed(title=copy.title, color=parse_color(copy.color))
     for question in settings.questions:
         embed.add_field(
@@ -90,23 +90,24 @@ def build_review_embed(
 ) -> discord.Embed:
     start = settings.start_screen
     embed = discord.Embed(
-        title=start.review.embed.title, color=parse_color(start.review.embed.color)
+        title=start.application.embed.title,
+        color=parse_color(start.application.embed.color),
     )
     embed.set_author(name=f"{user.name} ({user.id})")
     embed.set_thumbnail(url=user.display_avatar.url)
     embed.add_field(
-        name=start.review.user_label,
+        name=start.application.user_label,
         value=f"{user.name} {user.mention}",
         inline=False,
     )
     embed.add_field(
-        name=start.review.created_label,
+        name=start.application.created_label,
         value=_timestamps(user.created_at),
         inline=False,
     )
     joined = user.joined_at if isinstance(user, discord.Member) else None
     embed.add_field(
-        name=start.review.joined_label,
+        name=start.application.joined_label,
         value=_timestamps(joined),
         inline=False,
     )

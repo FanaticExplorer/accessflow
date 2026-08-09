@@ -59,7 +59,7 @@ class DecisionDmSettings(BaseModel):
             unknown = set(_PLACEHOLDER_RE.findall(text)) - {"user", "reason"}
             if unknown:
                 raise ValueError(
-                    f"'review.dm.{field_name}' may only use the '{{user}}' and "
+                    f"'application.dm.{field_name}' may only use the '{{user}}' and "
                     f"'{{reason}}' placeholders, got: {', '.join(sorted(unknown))}"
                 )
         return self
@@ -71,7 +71,7 @@ class DenyModalSettings(BaseModel):
     placeholder: str = ""
 
 
-class ReviewEmbedSettings(BaseModel):
+class ApplicationContentSettings(BaseModel):
     user_label: str = "User"
     created_label: str = "Account created"
     joined_label: str = "Member joined"
@@ -82,6 +82,9 @@ class ReviewEmbedSettings(BaseModel):
     dm: DecisionDmSettings
     deny_modal: DenyModalSettings
     copy_embed: CopyEmbedSettings
+
+
+class ReviewContentSettings(BaseModel):
     ticket: TicketMessageSettings
 
 
@@ -106,7 +109,8 @@ class StartScreenSettings(BaseModel):
     confirmation_message: str
     existing_application_message: str = "You already have an active application!"
     welcome: EmbedSettings
-    review: ReviewEmbedSettings
+    application: ApplicationContentSettings
+    review: ReviewContentSettings
     buttons: ButtonsSettings
 
 
@@ -166,6 +170,9 @@ class TicketSettings(BaseModel):
 
 class ReviewBehaviorSettings(BaseModel):
     channel: int | None = Field(None, gt=0)
+
+
+class ApplicationBehaviorSettings(BaseModel):
     role_id: int | None = Field(None, gt=0)
     require_deny_reason: bool = False
     send_copy: bool = True
@@ -184,6 +191,9 @@ class StartScreenConfig(BaseModel):
     timezone: str = "UTC"
     review: ReviewBehaviorSettings
     ticket: TicketSettings
+    application: ApplicationBehaviorSettings = Field(
+        default_factory=ApplicationBehaviorSettings
+    )
 
     @field_validator("timezone")
     @classmethod

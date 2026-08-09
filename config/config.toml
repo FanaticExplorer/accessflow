@@ -1,14 +1,26 @@
+# Where applications go: "review" posts an embed for admins, "direct" opens a ticket right away
 [start_screen]
 mode = "review"
+# Timezone for timestamps in the review embed, e.g. "Europe/Moscow"
 timezone = "UTC"
 
-[start_screen.review]
-channel = 1535615216769962074
+# Application handling — applies in both modes
+[start_screen.application]
+# Role granted to the applicant when their application is accepted
 role_id = "1486409575421968484"
-require_deny_reason = false
+# Ask the admin for a reason when denying; if false, the denial is sent without one
+require_deny_reason = true
+# DM the applicant a copy of their answers
 send_copy = true
+# Include the "Delete application" button on that DM copy
 allow_delete = true
 
+# Where review-mode applications are posted (review mode only)
+[start_screen.review]
+channel = 1535615216769962074
+
+# Ticket channel settings (direct mode and the open-ticket flow)
 [start_screen.ticket]
+# Category new ticket channels are created in; empty string = no category
 category = 1535615119822692412
 name_prefix = "ticket-"
