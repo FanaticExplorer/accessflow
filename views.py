@@ -265,6 +265,7 @@ class DenyReasonModal(discord.ui.Modal):
         )
 
 
+# (=^-ω-^=)
 class StartFlowModal(discord.ui.Modal):
     def __init__(self, questions: list[QuestionSettings], title: str):
         self.fields: list[tuple[str, discord.ui.InputText]] = []

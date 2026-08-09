@@ -38,6 +38,7 @@ class AccessFlowBot(discord.Bot):
 bot = AccessFlowBot()
 
 
+# (=^･ω･^=)
 @bot.event
 async def on_ready():
     logger.info("Logged in as {user}", user=bot.user)
@@ -53,6 +54,7 @@ async def start_screen(ctx: discord.ApplicationContext):
         await ctx.channel.send(embed=build_start_embed(), view=StartFlowView())
 
 
+# ฅ^•ﻌ•^ฅ
 def main():
     token = os.getenv("BOT_TOKEN")
     if not token:

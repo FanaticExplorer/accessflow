@@ -18,6 +18,7 @@ def sanitize_channel_name(name: str) -> str:
     return name[:100] or "ticket"
 
 
+# (=^･ｪ･^=)
 def build_start_embed() -> discord.Embed:
     start = settings.start_screen
     embed = discord.Embed(
