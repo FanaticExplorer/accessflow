@@ -174,6 +174,7 @@ class TicketSettings(BaseModel):
 
 class ReviewBehaviorSettings(BaseModel):
     channel: int | None = Field(None, gt=0)
+    ticket_buttons: bool = True
 
 
 class ApplicationBehaviorSettings(BaseModel):

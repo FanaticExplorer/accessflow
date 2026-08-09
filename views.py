@@ -26,6 +26,7 @@ async def create_ticket_channel(
     interaction: discord.Interaction,
     embed: discord.Embed | None,
     applicant_name: str,
+    with_buttons: bool = True,
 ) -> discord.Message | None:
     guild = interaction.guild
     if guild is None:
@@ -49,7 +50,9 @@ async def create_ticket_channel(
         return None
     if embed is None:
         return None
-    return await channel.send(embed=embed, view=TicketView())
+    if with_buttons:
+        return await channel.send(embed=embed, view=TicketView())
+    return await channel.send(embed=embed)
 
 
 async def _find_application(
@@ -415,7 +418,10 @@ class ReviewView(discord.ui.View):
         else:
             applicant = interaction.user.name if interaction.user else "ticket"
         sent = await create_ticket_channel(
-            interaction, build_ticket_message_embed(applicant), applicant
+            interaction,
+            build_ticket_message_embed(applicant),
+            applicant,
+            with_buttons=settings.config.start_screen.review.ticket_buttons,
         )
         if sent is not None:
             if application is not None:

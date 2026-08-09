@@ -18,6 +18,9 @@ allow_delete = true
 # Where review-mode applications are posted (review mode only)
 [start_screen.review]
 channel = 1535615216769962074
+# Attach Accept/Deny buttons to ticket channels opened from the review embed
+# (decisions can still be made on the review embed itself)
+ticket_buttons = false
 
 # Ticket channel settings (direct mode and the open-ticket flow)
 [start_screen.ticket]
