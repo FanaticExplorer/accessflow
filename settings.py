@@ -92,6 +92,24 @@ class ReviewContentSettings(BaseModel):
     ticket: TicketMessageSettings
 
 
+class TranscriptSettings(BaseModel):
+    header: str = "AccessFlow ticket transcript"
+    filename: str = "ticket-{user}.txt"
+    message: str = "Transcript for {user}"
+
+    @model_validator(mode="after")
+    def _check_placeholders(self) -> TranscriptSettings:
+        for field_name in ("filename", "message"):
+            text = getattr(self, field_name)
+            unknown = set(_PLACEHOLDER_RE.findall(text)) - {"user"}
+            if unknown:
+                raise ValueError(
+                    f"'transcript.{field_name}' may only use the '{{user}}' "
+                    f"placeholder, got: {', '.join(sorted(unknown))}"
+                )
+        return self
+
+
 class ButtonsReplySettings(BaseModel):
     accept: str
     deny: str
@@ -115,6 +133,7 @@ class StartScreenSettings(BaseModel):
     welcome: WelcomeEmbedSettings
     application: ApplicationContentSettings
     review: ReviewContentSettings
+    transcript: TranscriptSettings
     buttons: ButtonsSettings
 
 
@@ -163,10 +182,11 @@ class QuestionsFile(BaseModel):
 class TicketSettings(BaseModel):
     category: int | None = Field(None, gt=0)
     name_prefix: str = Field(min_length=1)
+    transcript_channel: int | None = Field(None, gt=0)
 
-    @field_validator("category", mode="before")
+    @field_validator("category", "transcript_channel", mode="before")
     @classmethod
-    def _empty_category_to_none(cls, value: object) -> object:
+    def _empty_to_none(cls, value: object) -> object:
         if value == "":
             return None
         return value

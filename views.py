@@ -1,3 +1,4 @@
+import io
 from typing import Literal
 
 import discord
@@ -10,6 +11,7 @@ from embeds import (
     build_review_embed,
     build_ticket_message_embed,
     build_user_copy_embed,
+    parse_timezone,
     sanitize_channel_name,
 )
 from settings import QuestionSettings, Settings, load_settings
@@ -113,6 +115,59 @@ async def _sync_review_message(
         await review_message.edit(view=sync_view)
 
 
+def _format_transcript_message(message: discord.Message) -> list[str]:
+    author = message.author.name if message.author is not None else "unknown"
+    stamp = message.created_at.astimezone(
+        parse_timezone(settings.config.start_screen.timezone)
+    ).strftime("%Y-%m-%d %H:%M")
+    content = message.content or message.system_content
+    lines = [f"[{stamp}] {author}: {content}"]
+    for embed in message.embeds:
+        title = embed.title or embed.description or "embed"
+        lines.append(f"({title})")
+    for attachment in message.attachments:
+        lines.append(f"(attachment: {attachment.url})")
+    return lines
+
+
+async def _save_transcript(
+    interaction: discord.Interaction,
+    channel: discord.TextChannel,
+    application: db.Application,
+) -> None:
+    transcript_channel_id = settings.config.start_screen.ticket.transcript_channel
+    if transcript_channel_id is None or interaction.guild is None:
+        return
+    try:
+        target = interaction.guild.get_channel(transcript_channel_id)
+        if not isinstance(target, Messageable):
+            target = await interaction.client.fetch_channel(transcript_channel_id)
+    except (discord.NotFound, discord.Forbidden):
+        return
+    if not isinstance(target, Messageable):
+        return
+    transcript = settings.start_screen.transcript
+    lines = [transcript.header, ""]
+    try:
+        async for message in channel.history(limit=None, oldest_first=True):
+            lines.extend(_format_transcript_message(message))
+    except discord.Forbidden:
+        logger.warning("cannot read history of ticket channel {id}", id=channel.id)
+        return
+    text = "\n".join(lines).strip()
+    if not text:
+        return
+    file = discord.File(
+        io.BytesIO(text.encode("utf-8")),
+        filename=transcript.filename.replace("{user}", str(application.user_id)),
+    )
+    text = transcript.message.replace("{user}", f"<@{application.user_id}>")
+    if text:
+        await target.send(text, file=file)
+    else:
+        await target.send(file=file)
+
+
 async def _close_ticket_channel(
     interaction: discord.Interaction, application: db.Application
 ) -> None:
@@ -127,6 +182,7 @@ async def _close_ticket_channel(
             return
         if not isinstance(channel, discord.TextChannel):
             return
+    await _save_transcript(interaction, channel, application)
     try:
         await channel.delete(reason="Application decided")
     except (discord.NotFound, discord.Forbidden):

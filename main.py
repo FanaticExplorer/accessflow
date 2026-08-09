@@ -10,7 +10,8 @@ from settings import Settings, load_settings
 from views import ApplicationCopyView, ReviewView, StartFlowView, TicketView
 
 settings: Settings = load_settings()
-intents = discord.Intents.default()
+# Needed to read message contents for ticket transcripts
+intents = discord.Intents.default() | discord.Intents.message_content
 
 
 class AccessFlowBot(discord.Bot):

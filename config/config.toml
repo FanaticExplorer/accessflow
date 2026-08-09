@@ -27,3 +27,5 @@ ticket_buttons = false
 # Category new ticket channels are created in; empty string = no category
 category = 1535615119822692412
 name_prefix = "ticket-"
+# Channel closed-ticket transcripts are posted to; empty string = transcripts disabled
+transcript_channel = 1535615216769962074

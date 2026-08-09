@@ -33,8 +33,9 @@ My friends asked me to make this... so why not.
 - `uv sync && uv run python main.py`
 
 The bot needs Send Messages, Embed Links, Manage Channels, Manage Roles and
-Read Message History. Default intents are enough. The SQLite database is created
-automatically at `data/accessflow.db`.
+Read Message History. Enable the Message Content privileged intent (required
+for ticket transcripts). The SQLite database is created automatically at
+`data/accessflow.db`.
 
 ## Usage
 

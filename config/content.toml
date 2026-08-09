@@ -57,6 +57,15 @@ description = "Please answer a few questions here."
 color = "#5865F2"
 image = ""
 
+# Transcript file posted when a ticket is closed
+[start_screen.transcript]
+# First line of the file
+header = "AccessFlow ticket transcript"
+# File name of the transcript; {user} is replaced with the applicant's user id
+filename = "ticket-{user}.txt"
+# Message posted alongside the file; {user} is replaced with a mention of the applicant
+message = "Transcript for {user}"
+
 # Button labels
 [start_screen.buttons]
 accept = "Accept"
