@@ -14,7 +14,7 @@ _PLACEHOLDER_RE = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 class EmbedSettings(BaseModel):
     title: str
-    description: str
+    description: str = ""
     color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
     image: str = ""
 
@@ -72,20 +72,23 @@ class DenyModalSettings(BaseModel):
 
 
 class ReviewEmbedSettings(BaseModel):
-    title: str
-    color: str = Field(pattern=r"^#?[0-9A-Fa-f]{6}$")
     user_label: str = "User"
     created_label: str = "Account created"
     joined_label: str = "Member joined"
     accepted_footer: str = "Application accepted by {user}"
     denied_footer: str = "Application denied by {user}"
     deleted_footer: str = "Application deleted by {user}"
-    send_copy: bool = True
-    allow_delete: bool = True
+    embed: EmbedSettings
     dm: DecisionDmSettings
     deny_modal: DenyModalSettings
     copy_embed: CopyEmbedSettings
     ticket: TicketMessageSettings
+
+
+class ButtonsReplySettings(BaseModel):
+    accept: str
+    deny: str
+    delete: str
 
 
 class ButtonsSettings(BaseModel):
@@ -93,9 +96,7 @@ class ButtonsSettings(BaseModel):
     deny: str
     open_ticket: str
     delete: str
-    accept_reply: str
-    deny_reply: str
-    delete_reply: str
+    reply: ButtonsReplySettings
 
 
 class StartScreenSettings(BaseModel):
@@ -103,7 +104,7 @@ class StartScreenSettings(BaseModel):
     button_label: str
     ack_message: str
     confirmation_message: str
-    embed: EmbedSettings
+    welcome: EmbedSettings
     review: ReviewEmbedSettings
     buttons: ButtonsSettings
 
@@ -162,13 +163,12 @@ class TicketSettings(BaseModel):
         return value
 
 
-class StartScreenConfig(BaseModel):
-    mode: Literal["review", "direct"] = "review"
-    review_channel: int | None = Field(None, gt=0)
-    timezone: str = "UTC"
+class ReviewBehaviorSettings(BaseModel):
+    channel: int | None = Field(None, gt=0)
     role_id: int | None = Field(None, gt=0)
-    deny_reason: bool = False
-    ticket: TicketSettings
+    require_deny_reason: bool = False
+    send_copy: bool = True
+    allow_delete: bool = True
 
     @field_validator("role_id", mode="before")
     @classmethod
@@ -176,6 +176,13 @@ class StartScreenConfig(BaseModel):
         if value == "":
             return None
         return value
+
+
+class StartScreenConfig(BaseModel):
+    mode: Literal["review", "direct"] = "review"
+    timezone: str = "UTC"
+    review: ReviewBehaviorSettings
+    ticket: TicketSettings
 
     @field_validator("timezone")
     @classmethod
@@ -189,8 +196,8 @@ class StartScreenConfig(BaseModel):
 
     @model_validator(mode="after")
     def _check_review_channel(self) -> StartScreenConfig:
-        if self.mode == "review" and self.review_channel is None:
-            raise ValueError("'review_channel' is required when mode is 'review'")
+        if self.mode == "review" and self.review.channel is None:
+            raise ValueError("'channel' is required when mode is 'review'")
         return self
 
 

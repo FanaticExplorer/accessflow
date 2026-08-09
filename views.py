@@ -75,7 +75,7 @@ async def _sync_review_message(
         return
     if message is not None and application.message_id == message.id:
         return
-    review_channel_id = settings.config.start_screen.review_channel
+    review_channel_id = settings.config.start_screen.review.channel
     if review_channel_id is None:
         return
     channel = (
@@ -134,7 +134,7 @@ async def _close_ticket_channel(
 async def _grant_role(
     interaction: discord.Interaction, application: db.Application
 ) -> None:
-    role_id = settings.config.start_screen.role_id
+    role_id = settings.config.start_screen.review.role_id
     if role_id is None or interaction.guild is None:
         return
     role = interaction.guild.get_role(role_id)
@@ -210,9 +210,9 @@ async def _decide(
         await db.update_status(application.message_id, status)
     buttons = settings.start_screen.buttons
     reply = {
-        "accepted": buttons.accept_reply,
-        "denied": buttons.deny_reply,
-        "deleted": buttons.delete_reply,
+        "accepted": buttons.reply.accept,
+        "denied": buttons.reply.deny,
+        "deleted": buttons.reply.delete,
     }[status]
     message = interaction.message
     user = interaction.user.name if interaction.user else "unknown"
@@ -220,7 +220,7 @@ async def _decide(
     await interaction.response.defer(ephemeral=True)
     if message is not None:
         if view is None:
-            review_channel_id = settings.config.start_screen.review_channel
+            review_channel_id = settings.config.start_screen.review.channel
             if review_channel_id is not None and message.channel.id == review_channel_id:
                 view = ReviewView()
             else:
@@ -312,7 +312,7 @@ class StartFlowModal(discord.ui.Modal):
                     f"Ticket created: <#{sent.channel.id}>", ephemeral=True
                 )
             return
-        review_channel_id = settings.config.start_screen.review_channel
+        review_channel_id = settings.config.start_screen.review.channel
         if review_channel_id is None:
             return
         review_channel = interaction.guild.get_channel(review_channel_id)
@@ -326,10 +326,10 @@ class StartFlowModal(discord.ui.Modal):
             username=username,
             answers=answers,
         )
-        if settings.start_screen.review.send_copy:
+        if settings.config.start_screen.review.send_copy:
             try:
                 copy_embed = build_user_copy_embed(answers)
-                if settings.start_screen.review.allow_delete:
+                if settings.config.start_screen.review.allow_delete:
                     copy = await interaction.user.send(
                         embed=copy_embed, view=ApplicationCopyView()
                     )
@@ -374,7 +374,7 @@ class ReviewView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
-        if settings.config.start_screen.deny_reason:
+        if settings.config.start_screen.review.require_deny_reason:
             application = await _find_application(interaction)
             if application is not None:
                 await interaction.response.send_modal(
@@ -441,7 +441,7 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.danger,
     )
     async def deny(self, button: discord.ui.Button, interaction: discord.Interaction):
-        if settings.config.start_screen.deny_reason:
+        if settings.config.start_screen.review.require_deny_reason:
             application = await _find_application(interaction)
             if application is not None:
                 await interaction.response.send_modal(

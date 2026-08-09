@@ -1,9 +1,13 @@
 [start_screen]
 mode = "review"
-review_channel = 1535615216769962074
 timezone = "UTC"
+
+[start_screen.review]
+channel = 1535615216769962074
 role_id = "1486409575421968484"
-deny_reason = false
+require_deny_reason = false
+send_copy = true
+allow_delete = true
 
 [start_screen.ticket]
 category = 1535615119822692412

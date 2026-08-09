@@ -4,23 +4,23 @@ button_label = "Get Started"
 ack_message = "Welcome message sent!"
 confirmation_message = "Thanks, {name}! Your answers were saved."
 
-[start_screen.embed]
+[start_screen.welcome]
 title = "Welcome to the server"
 description = "Press the button below and answer few questions to get started!"
 color = "#5865F2"
 image = ""
 
 [start_screen.review]
-title = "New application"
-color = "#5865F2"
 user_label = "User"
 created_label = "Account created"
 joined_label = "Member joined"
 accepted_footer = "Application accepted by {user}"
 denied_footer = "Application denied by {user}"
 deleted_footer = "Application deleted by {user}"
-send_copy = true
-allow_delete = true
+
+[start_screen.review.embed]
+title = "New application"
+color = "#5865F2"
 
 [start_screen.review.dm]
 accepted = "Congratulations, {user}! Your application was accepted."
@@ -47,6 +47,8 @@ accept = "Accept"
 deny = "Deny"
 open_ticket = "Open ticket"
 delete = "Delete application"
-accept_reply = "Accept — placeholder"
-deny_reply = "Deny — placeholder"
-delete_reply = "Your application was deleted."
+
+[start_screen.buttons.reply]
+accept = "Accept — placeholder"
+deny = "Deny — placeholder"
+delete = "Your application was deleted."

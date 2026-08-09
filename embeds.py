@@ -21,12 +21,12 @@ def sanitize_channel_name(name: str) -> str:
 def build_start_embed() -> discord.Embed:
     start = settings.start_screen
     embed = discord.Embed(
-        title=start.embed.title,
-        description=start.embed.description,
-        color=parse_color(start.embed.color),
+        title=start.welcome.title,
+        description=start.welcome.description,
+        color=parse_color(start.welcome.color),
     )
-    if start.embed.image:
-        embed.set_image(url=start.embed.image)
+    if start.welcome.image:
+        embed.set_image(url=start.welcome.image)
     return embed
 
 
@@ -89,7 +89,9 @@ def build_review_embed(
     user: discord.User | discord.Member, answers: dict[str, str]
 ) -> discord.Embed:
     start = settings.start_screen
-    embed = discord.Embed(title=start.review.title, color=parse_color(start.review.color))
+    embed = discord.Embed(
+        title=start.review.embed.title, color=parse_color(start.review.embed.color)
+    )
     embed.set_author(name=f"{user.name} ({user.id})")
     embed.set_thumbnail(url=user.display_avatar.url)
     embed.add_field(
