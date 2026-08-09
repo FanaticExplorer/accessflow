@@ -61,7 +61,7 @@ Three files in `config/`:
 | `content.toml` | all text: embeds, labels, DMs, buttons, footers |
 | `questions.toml` | the application form questions |
 
-Text fields support `{name}`, `{user}` and `{reason}` placeholders; unknown ones
+Text fields support `{user}` and `{reason}` placeholders; unknown ones
 are rejected at startup.
 
 ## License

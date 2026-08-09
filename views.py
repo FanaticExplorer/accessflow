@@ -12,6 +12,7 @@ from embeds import (
     build_ticket_message_embed,
     build_user_copy_embed,
     parse_timezone,
+    question_answer_key,
     sanitize_channel_name,
 )
 from settings import QuestionSettings, Settings, load_settings
@@ -329,7 +330,7 @@ class StartFlowModal(discord.ui.Modal):
     def __init__(self, questions: list[QuestionSettings], title: str):
         self.fields: list[tuple[str, discord.ui.InputText]] = []
         inputs: list[discord.ui.InputText] = []
-        for question in questions:
+        for index, question in enumerate(questions):
             field = discord.ui.InputText(
                 label=question.label,
                 placeholder=question.placeholder or None,
@@ -341,7 +342,7 @@ class StartFlowModal(discord.ui.Modal):
                 custom_id=question.custom_id,
                 row=question.row,
             )
-            self.fields.append((question.key, field))
+            self.fields.append((question_answer_key(question, index), field))
             inputs.append(field)
         super().__init__(*inputs, title=title)
 
@@ -353,13 +354,12 @@ class StartFlowModal(discord.ui.Modal):
                 settings.start_screen.existing_application_message, ephemeral=True
             )
             return
-        message = settings.start_screen.confirmation_message
         answers: dict[str, str] = {}
-        for key, field in self.fields:
-            value = field.value or ""
-            answers[key] = value
-            message = message.replace(f"{{{key}}}", value)
-        await interaction.response.send_message(message, ephemeral=True)
+        for answer_key, field in self.fields:
+            answers[answer_key] = field.value or ""
+        await interaction.response.send_message(
+            settings.start_screen.confirmation_message, ephemeral=True
+        )
         if interaction.guild is None or interaction.user is None:
             return
         embed = build_review_embed(interaction.user, answers)

@@ -1,16 +1,14 @@
 # One [[question]] per input in the application modal, in order.
-# Available fields:
-#   key          internal identifier; "name" must exist (content.toml uses it)
+# Required: label. All other fields are optional:
 #   label        text shown above the input (max 45 chars)
 #   placeholder  grey hint text inside the input
 #   style        "short" = one line, "long" = paragraph
 #   required     whether the question must be answered
-#   min_length / max_length  input length limits (optional)
-#   value        default value prefilled in the input (optional)
-#   custom_id    unique id for the input component; keep the "question:" prefix
+#   min_length / max_length  input length limits
+#   value        default value prefilled in the input
+#   custom_id    unique id for the input; also used to store the answer
 #   row          which row of the modal the input sits on (0-4)
 [[question]]
-key = "name"
 label = "What should we call you?"
 placeholder = "Your name or nickname"
 style = "short"
@@ -21,7 +19,6 @@ custom_id = "question:name"
 row = 0
 
 [[question]]
-key = ""
 label = "What are you interested in?"
 placeholder = "e.g. Coding, design, gaming"
 style = "short"
@@ -31,7 +28,6 @@ custom_id = "question:interest"
 row = 1
 
 [[question]]
-key = "how_found"
 label = "How did you find our server?"
 placeholder = "e.g. a friend, a link, another server"
 style = "short"
@@ -41,7 +37,6 @@ custom_id = "question:how_found"
 row = 2
 
 [[question]]
-key = "note"
 label = "Anything else we should know?"
 style = "long"
 required = false

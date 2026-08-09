@@ -1,23 +1,26 @@
 # Texts for the start screen flow: modal, button, acknowledgements
+# Required: modal_title, button_label, ack_message, confirmation_message
+# Optional: existing_application_message
 [start_screen]
 modal_title = "Get Started"
 button_label = "Get Started"
 ack_message = "Welcome message sent!"
-# {name} is replaced with the applicant's answer to the "name" question
-confirmation_message = "Thanks, {name}! Your answers were saved."
+confirmation_message = "Thanks for applying! Your answers were saved."
 existing_application_message = "You already have an active application!"
 
 # The welcome embed the bot posts
+# Required: title, color. Optional: description, image, footer
 [start_screen.welcome]
 title = "Welcome to the server"
 description = "Press the button below and answer few questions to get started!"
 color = "#5865F2"
-# Optional image URL; empty = no image
+# Image URL; empty = no image
 image = ""
-# Optional footer text; empty = no footer
+# Footer text; empty = no footer
 footer = "Footer text"
 
 # The application embed — shown in both modes (review channel or ticket channel)
+# All fields optional
 [start_screen.application]
 user_label = "User"
 created_label = "Account created"
@@ -28,11 +31,13 @@ denied_footer = "Application denied by {user}"
 deleted_footer = "Application deleted by {user}"
 
 # The embed admins see when reviewing an application
+# Required: title, color
 [start_screen.application.embed]
 title = "New application"
 color = "#5865F2"
 
 # Direct messages sent to the applicant
+# All fields optional
 [start_screen.application.dm]
 accepted = "Congratulations, {user}! Your application was accepted."
 denied = "Your application was declined."
@@ -40,17 +45,20 @@ denied = "Your application was declined."
 denied_with_reason = "Your application was declined. Reason: {reason}"
 
 # Modal shown to the admin when denying with a reason
+# Required: title, label. Optional: placeholder
 [start_screen.application.deny_modal]
 title = "Deny application"
 label = "Reason for denial"
 placeholder = "Tell the applicant why their application was declined."
 
 # The applicant's answers, DM'd to them as a copy
+# Required: title, color
 [start_screen.application.copy_embed]
 title = "Your application"
 color = "#5865F2"
 
 # Embed posted when an admin opens a ticket from the review embed
+# Required: title, color. Optional: description, image
 [start_screen.review.ticket]
 title = "Welcome!"
 description = "Please answer a few questions here."
@@ -58,6 +66,7 @@ color = "#5865F2"
 image = ""
 
 # Transcript file posted when a ticket is closed
+# All fields optional
 [start_screen.transcript]
 # First line of the file
 header = "AccessFlow ticket transcript"
@@ -67,6 +76,7 @@ filename = "ticket-{user}.txt"
 message = "Transcript for {user}"
 
 # Button labels
+# All fields required
 [start_screen.buttons]
 accept = "Accept"
 deny = "Deny"
@@ -74,6 +84,7 @@ open_ticket = "Open ticket"
 delete = "Delete application"
 
 # Ephemeral replies shown after pressing a button
+# All fields required
 [start_screen.buttons.reply]
 accept = "Accept — placeholder"
 deny = "Deny — placeholder"

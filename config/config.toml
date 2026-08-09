@@ -1,10 +1,12 @@
 # Where applications go: "review" posts an embed for admins, "direct" opens a ticket right away
+# Both optional — mode defaults to "review", timezone to "UTC"
 [start_screen]
 mode = "review"
-# Timezone for timestamps in the review embed, e.g. "Europe/Moscow"
+# Timezone for timestamps in the review embed: "UTC" or an offset like "+03:00"
 timezone = "UTC"
 
 # Application handling — applies in both modes
+# All fields optional
 [start_screen.application]
 # Role granted to the applicant when their application is accepted
 role_id = "1486409575421968484"
@@ -16,6 +18,7 @@ send_copy = true
 allow_delete = true
 
 # Where review-mode applications are posted (review mode only)
+# Required when mode is "review": channel. Optional: ticket_buttons
 [start_screen.review]
 channel = 1535615216769962074
 # Attach Accept/Deny buttons to ticket channels opened from the review embed
@@ -23,6 +26,7 @@ channel = 1535615216769962074
 ticket_buttons = false
 
 # Ticket channel settings (direct mode and the open-ticket flow)
+# Required: name_prefix. Optional: category, transcript_channel
 [start_screen.ticket]
 # Category new ticket channels are created in; empty string = no category
 category = 1535615119822692412

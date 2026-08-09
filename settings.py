@@ -138,7 +138,6 @@ class StartScreenSettings(BaseModel):
 
 
 class QuestionSettings(BaseModel):
-    key: str = Field(min_length=1)
     label: str = Field(min_length=1, max_length=45)
     placeholder: str = Field("", max_length=100)
     style: Literal["short", "long"] = "short"
@@ -171,11 +170,12 @@ class QuestionsFile(BaseModel):
     question: list[QuestionSettings] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _check_unique_keys(self) -> QuestionsFile:
-        keys = [q.key for q in self.question]
-        duplicates = sorted({k for k in keys if keys.count(k) > 1})
+    def _check_unique_custom_ids(self) -> QuestionsFile:
+        ids = [q.custom_id for q in self.question if q.custom_id]
+        duplicates = sorted({i for i in ids if ids.count(i) > 1})
         if duplicates:
-            raise ValueError(f"duplicate question keys: {', '.join(duplicates)}")
+            names = ", ".join(repr(i) for i in duplicates)
+            raise ValueError(f"duplicate question custom_ids: {names}")
         return self
 
 
@@ -245,18 +245,6 @@ class Settings(BaseModel):
     start_screen: StartScreenSettings
     questions: list[QuestionSettings]
     config: BotConfig
-
-    @model_validator(mode="after")
-    def _check_confirmation_placeholders(self) -> Settings:
-        known_keys = {q.key for q in self.questions}
-        placeholders = set(_PLACEHOLDER_RE.findall(self.start_screen.confirmation_message))
-        unknown = placeholders - known_keys
-        if unknown:
-            raise ValueError(
-                "'start_screen.confirmation_message' references unknown question keys: "
-                f"{', '.join(sorted(unknown))}"
-            )
-        return self
 
 
 def _read_toml(filename: str) -> dict:

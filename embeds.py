@@ -4,9 +4,13 @@ from typing import Literal
 
 import discord
 
-from settings import Settings, load_settings
+from settings import QuestionSettings, Settings, load_settings
 
 settings: Settings = load_settings()
+
+
+def question_answer_key(question: QuestionSettings, index: int) -> str:
+    return question.custom_id or f"q{index}"
 
 
 def parse_color(value: str) -> discord.Color:
@@ -81,9 +85,11 @@ def build_decision_footer(
 def build_user_copy_embed(answers: dict[str, str]) -> discord.Embed:
     copy = settings.start_screen.application.copy_embed
     embed = discord.Embed(title=copy.title, color=parse_color(copy.color))
-    for question in settings.questions:
+    for index, question in enumerate(settings.questions):
         embed.add_field(
-            name=question.label, value=answers.get(question.key, "") or "—", inline=False
+            name=question.label,
+            value=answers.get(question_answer_key(question, index), "") or "—",
+            inline=False,
         )
     return embed
 
@@ -114,8 +120,10 @@ def build_review_embed(
         value=_timestamps(joined),
         inline=False,
     )
-    for question in settings.questions:
+    for index, question in enumerate(settings.questions):
         embed.add_field(
-            name=question.label, value=answers.get(question.key, "") or "—", inline=False
+            name=question.label,
+            value=answers.get(question_answer_key(question, index), "") or "—",
+            inline=False,
         )
     return embed
