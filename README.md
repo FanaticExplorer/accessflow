@@ -41,10 +41,10 @@ uv run docker compose up -d --build
 
 The SQLite database persists in `./data`.
 
-The bot needs Send Messages, Embed Links, Manage Channels, Manage Roles and
-Read Message History. Enable the Message Content privileged intent (required
-for ticket transcripts). The SQLite database is created automatically at
-`data/accessflow.db`.
+The bot needs View Channels, Manage Channels, Manage Roles, Send Messages,
+Embed Links, Attach Files and Read Message History. Enable the Message Content
+privileged intent (required for ticket transcripts). The SQLite database is
+created automatically at `data/accessflow.db`.
 
 ## Usage
 
