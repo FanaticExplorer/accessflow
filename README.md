@@ -43,8 +43,9 @@ The SQLite database persists in `./data`.
 
 The bot needs View Channels, Manage Channels, Manage Roles, Send Messages,
 Embed Links, Attach Files and Read Message History. Enable the Message Content
-privileged intent (required for ticket transcripts). The SQLite database is
-created automatically at `data/accessflow.db`.
+and Server Members privileged intents (ticket transcripts and detecting when
+applicants leave). The SQLite database is created automatically at
+`data/accessflow.db`.
 
 ## Usage
 

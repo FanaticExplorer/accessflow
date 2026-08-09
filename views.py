@@ -72,7 +72,8 @@ async def _find_application(
 
 
 async def _sync_review_message(
-    interaction: discord.Interaction,
+    guild: discord.Guild | None,
+    client: discord.Client,
     application: db.Application | None,
     message: discord.Message | None,
     footer: str,
@@ -84,14 +85,10 @@ async def _sync_review_message(
     review_channel_id = settings.config.start_screen.review.channel
     if review_channel_id is None:
         return
-    channel = (
-        interaction.guild.get_channel(review_channel_id)
-        if interaction.guild is not None
-        else None
-    )
+    channel = guild.get_channel(review_channel_id) if guild is not None else None
     if not isinstance(channel, Messageable):
         try:
-            channel = await interaction.client.fetch_channel(review_channel_id)
+            channel = await client.fetch_channel(review_channel_id)
         except discord.NotFound:
             return
     if not isinstance(channel, Messageable):
@@ -100,13 +97,6 @@ async def _sync_review_message(
         review_message = await channel.fetch_message(application.message_id)
     except (discord.NotFound, discord.Forbidden):
         return
-    sync_view = ReviewView()
-    sync_view.disable_all_items()
-    if review_message.embeds:
-        review_message.embeds[0].set_footer(text=footer)
-        await review_message.edit(embed=review_message.embeds[0], view=sync_view)
-    else:
-        await review_message.edit(view=sync_view)
     sync_view = ReviewView()
     sync_view.disable_all_items()
     if review_message.embeds:
@@ -132,17 +122,18 @@ def _format_transcript_message(message: discord.Message) -> list[str]:
 
 
 async def _save_transcript(
-    interaction: discord.Interaction,
+    guild: discord.Guild | None,
+    client: discord.Client,
     channel: discord.TextChannel,
     application: db.Application,
 ) -> None:
     transcript_channel_id = settings.config.start_screen.ticket.transcript_channel
-    if transcript_channel_id is None or interaction.guild is None:
+    if transcript_channel_id is None or guild is None:
         return
     try:
-        target = interaction.guild.get_channel(transcript_channel_id)
+        target = guild.get_channel(transcript_channel_id)
         if not isinstance(target, Messageable):
-            target = await interaction.client.fetch_channel(transcript_channel_id)
+            target = await client.fetch_channel(transcript_channel_id)
     except (discord.NotFound, discord.Forbidden):
         return
     if not isinstance(target, Messageable):
@@ -170,20 +161,22 @@ async def _save_transcript(
 
 
 async def _close_ticket_channel(
-    interaction: discord.Interaction, application: db.Application
+    guild: discord.Guild | None,
+    client: discord.Client,
+    application: db.Application,
 ) -> None:
     channel_id = application.ticket_channel_id
-    if channel_id is None or interaction.guild is None:
+    if channel_id is None or guild is None:
         return
-    channel = interaction.guild.get_channel(channel_id)
+    channel = guild.get_channel(channel_id)
     if not isinstance(channel, discord.TextChannel):
         try:
-            channel = await interaction.guild.fetch_channel(channel_id)
+            channel = await guild.fetch_channel(channel_id)
         except (discord.NotFound, discord.Forbidden):
             return
         if not isinstance(channel, discord.TextChannel):
             return
-    await _save_transcript(interaction, channel, application)
+    await _save_transcript(guild, client, channel, application)
     try:
         await channel.delete(reason="Application decided")
     except (discord.NotFound, discord.Forbidden):
@@ -256,6 +249,41 @@ async def _notify_user(
         )
 
 
+async def mark_application_left(
+    member: discord.Member, client: discord.Client
+) -> None:
+    guild = member.guild
+    application = await db.get_active_by_user(member.id)
+    if application is None:
+        return
+    await db.update_status(application.message_id, "left")
+    footer = build_decision_footer("left", member.name)
+    await _sync_review_message(guild, client, application, None, footer)
+    copy_id = application.user_copy_message_id
+    if copy_id is not None:
+        user = client.get_user(application.user_id)
+        if user is None:
+            try:
+                user = await client.fetch_user(application.user_id)
+            except discord.NotFound:
+                user = None
+        if user is not None:
+            try:
+                dm = await user.create_dm()
+                copy = await dm.fetch_message(copy_id)
+            except (discord.Forbidden, discord.NotFound):
+                copy = None
+            if copy is not None:
+                sync_view = ApplicationCopyView()
+                sync_view.disable_all_items()
+                if copy.embeds:
+                    copy.embeds[0].set_footer(text=footer)
+                    await copy.edit(embed=copy.embeds[0], view=sync_view)
+                else:
+                    await copy.edit(view=sync_view)
+    await _close_ticket_channel(guild, client, application)
+
+
 async def _decide(
     interaction: discord.Interaction,
     status: Literal["accepted", "denied", "deleted"],
@@ -291,7 +319,7 @@ async def _decide(
             await message.edit(embed=message.embeds[0], view=view)
         else:
             await message.edit(view=view)
-    await _sync_review_message(interaction, application, message, footer)
+    await _sync_review_message(interaction.guild, interaction.client, application, message, footer)
     await interaction.followup.send(reply, ephemeral=True)
     if application is not None:
         if status == "accepted":
@@ -299,7 +327,7 @@ async def _decide(
         if status in ("accepted", "denied"):
             await _notify_user(interaction, application, status, footer, reason)
         if status != "deleted":
-            await _close_ticket_channel(interaction, application)
+            await _close_ticket_channel(interaction.guild, interaction.client, application)
 
 
 class DenyReasonModal(discord.ui.Modal):

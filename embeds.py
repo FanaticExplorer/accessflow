@@ -68,13 +68,14 @@ def parse_timezone(value: str) -> timezone:
 
 
 def build_decision_footer(
-    status: Literal["accepted", "denied", "deleted"], user: str
+    status: Literal["accepted", "denied", "deleted", "left"], user: str
 ) -> str:
     start = settings.start_screen
     template = {
         "accepted": start.application.accepted_footer,
         "denied": start.application.denied_footer,
         "deleted": start.application.deleted_footer,
+        "left": start.application.left_footer,
     }[status]
     text = template.replace("{user}", user)
     now = datetime.now(parse_timezone(settings.config.start_screen.timezone))

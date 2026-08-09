@@ -82,6 +82,7 @@ class ApplicationContentSettings(BaseModel):
     accepted_footer: str = "Application accepted by {user}"
     denied_footer: str = "Application denied by {user}"
     deleted_footer: str = "Application deleted by {user}"
+    left_footer: str = "{user} left the server"
     embed: EmbedSettings
     dm: DecisionDmSettings
     deny_modal: DenyModalSettings

@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS applications (
 )
 """
 
-Status = Literal["pending", "accepted", "denied", "deleted"]
+Status = Literal["pending", "accepted", "denied", "deleted", "left"]
 
 _db: aiosqlite.Connection | None = None
 

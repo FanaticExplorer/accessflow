@@ -7,11 +7,19 @@ from loguru import logger
 import db
 from embeds import build_start_embed
 from settings import Settings, load_settings
-from views import ApplicationCopyView, ReviewView, StartFlowView, TicketView
+from views import (
+    ApplicationCopyView,
+    ReviewView,
+    StartFlowView,
+    TicketView,
+    mark_application_left,
+)
 
 settings: Settings = load_settings()
-# Needed to read message contents for ticket transcripts
-intents = discord.Intents.default() | discord.Intents.message_content
+# Message content for ticket transcripts; members to catch applicants leaving
+intents = (
+    discord.Intents.default() | discord.Intents.message_content | discord.Intents.members
+)
 
 
 class AccessFlowBot(discord.Bot):
@@ -43,6 +51,11 @@ bot = AccessFlowBot()
 @bot.event
 async def on_ready():
     logger.info("Logged in as {user}", user=bot.user)
+
+
+@bot.event
+async def on_member_remove(member: discord.Member):
+    await mark_application_left(member, bot)
 
 
 @bot.slash_command(name="start_screen", description="Generate an embed with start message")

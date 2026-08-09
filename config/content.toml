@@ -29,6 +29,8 @@ joined_label = "Member joined"
 accepted_footer = "Application accepted by {user}"
 denied_footer = "Application denied by {user}"
 deleted_footer = "Application deleted by {user}"
+# {user} is replaced with the applicant's username
+left_footer = "{user} left the server"
 
 # The embed admins see when reviewing an application
 # Required: title, color
