@@ -1,7 +1,8 @@
 [project]
 name = "accessflow"
 version = "0.1.0"
-description = ""
+description = "Discord onboarding bot with a configurable application flow"
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
