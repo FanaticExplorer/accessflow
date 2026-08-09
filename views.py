@@ -232,6 +232,7 @@ async def _decide(
         else:
             await message.edit(view=view)
     await _sync_review_message(interaction, application, message, footer)
+    await interaction.followup.send(reply, ephemeral=True)
     if application is not None:
         if status == "accepted":
             await _grant_role(interaction, application)
@@ -239,7 +240,6 @@ async def _decide(
             await _notify_user(interaction, application, status, footer, reason)
         if status != "deleted":
             await _close_ticket_channel(interaction, application)
-    await interaction.followup.send(reply, ephemeral=True)
 
 
 class DenyReasonModal(discord.ui.Modal):
